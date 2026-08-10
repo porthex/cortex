@@ -246,7 +246,7 @@ def load_jsonl(path: Path, source: str) -> list[dict[str, Any]]:
 
 def verify_backup_manifest(path: Path, expected_source: str | None = None) -> dict[str, Any]:
     try:
-        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest = json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, json.JSONDecodeError) as exc:
         raise CorthexError(f"invalid backup manifest: {exc}") from exc
     if manifest.get("schema_version") != 1:

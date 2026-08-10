@@ -256,6 +256,15 @@ class FileSafetyTests(unittest.TestCase):
             with self.assertRaises(CorthexError):
                 load_jsonl(p, "source")
 
+    def test_manifest_accepts_windows_powershell_utf8_bom(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            manifest = self._manifest_for(root, migration_source="windows-cortex")
+            path = root / "SHA256SUMS.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8-sig")
+            verified = verify_backup_manifest(path, expected_source="windows-cortex")
+            self.assertEqual(verified["migration_source"], "windows-cortex")
+
     def test_manifest_verification_detects_tampering(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
