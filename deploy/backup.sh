@@ -2,7 +2,7 @@
 set -euo pipefail
 umask 077
 
-ENV_FILE=${CORTHEX_ENV_FILE:-/etc/corthex/corthex.env}
+ENV_FILE=${CORTHEX_BACKUP_ENV_FILE:-/etc/corthex/backup.env}
 BACKUP_DIR=${CORTHEX_BACKUP_DIR:-/var/lib/corthex/backups}
 PG_DUMP=${PG_DUMP:-pg_dump}
 [[ -r "$ENV_FILE" ]] || { echo "Cannot read $ENV_FILE" >&2; exit 2; }

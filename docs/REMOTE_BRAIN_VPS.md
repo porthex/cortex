@@ -34,11 +34,11 @@ The installer:
 1. refuses a public Funnel configuration;
 2. creates the non-login `corthex` account;
 3. installs the package into `/opt/corthex/.venv`;
-4. stores generated `CORTHEX_MCP_TOKEN` material and the validated MCP runtime contract in `/etc/corthex/corthex.env` with mode `0600`;
+4. stores generated `CORTHEX_MCP_TOKEN` material and the validated MCP runtime contract in `/etc/corthex/corthex.env` with mode `0600`, while isolating the database backup credential in root-only `/etc/corthex/backup.env`;
 5. enables `corthex-remote.service` on `127.0.0.1:8890`;
-6. adds only the `/corthex` Tailscale Serve handler, preserving existing routes.
+6. refuses to replace an existing `/corthex` handler, then adds only that Tailscale Serve path while preserving other routes.
 
-Read `CORTHEX_MCP_TOKEN` only on the host and move it through an approved secret store. Do not paste it into issues, logs, shell history, or client configuration files that are synced. Upgrades preserve the existing token and `CORTHEX_BANKS_JSON` unless the operator explicitly supplies replacements.
+Read `CORTHEX_MCP_TOKEN` only on the host and move it through an approved secret store. Do not paste it into issues, logs, shell history, or client configuration files that are synced. Upgrades preserve the existing token and `CORTHEX_BANKS_JSON` unless the operator explicitly supplies replacements. The service account cannot read `backup.env`; backup and restore commands run as root. A failed restart, health/auth probe, or Serve update restores the prior package, environment, and unit.
 
 ## Verify
 

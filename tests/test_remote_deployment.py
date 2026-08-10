@@ -5,6 +5,7 @@ import os
 import re
 import socketserver
 import subprocess
+import tempfile
 import threading
 import unittest
 from pathlib import Path
@@ -47,6 +48,17 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         )
         self.assertEqual(0, private.returncode)
         self.assertNotEqual(0, public.returncode)
+
+    def test_serve_checker_rejects_existing_corthex_path(self) -> None:
+        checker = ROOT / "deploy/check-serve-private.py"
+        collision = subprocess.run(
+            ["python3", str(checker)],
+            input='{"Web":{"host:443":{"Handlers":{"/corthex":{"Proxy":"http://127.0.0.1:1"}}}}}',
+            text=True,
+            capture_output=True,
+        )
+        self.assertNotEqual(0, collision.returncode)
+        self.assertIn("/corthex", collision.stderr)
 
     def test_local_auth_checker_requires_denial_and_correct_token(self) -> None:
         token = "unit-test-token"
@@ -99,7 +111,7 @@ class RemoteDeploymentContractTests(unittest.TestCase):
     def test_installer_writes_mcp_runtime_environment_contract(self) -> None:
         script = self.read("deploy/install-vps.sh")
         for expected in (
-            "/opt/corthex/.venv.next/bin/corthex-mcp-http --help",
+            "/opt/corthex/.venv.next/bin/python -c 'import corthex.mcp_http'",
             "CORTHEX_MCP_TOKEN",
             "CORTHEX_BANKS_JSON",
             "CORTHEX_MCP_PUBLIC_URL",
@@ -109,6 +121,25 @@ class RemoteDeploymentContractTests(unittest.TestCase):
             self.assertIn(expected, script)
         self.assertNotIn("CORTHEX_ALLOWED_BANKS", script)
         self.assertNotIn("CORTHEX_TOKEN=", script)
+        self.assertNotIn("corthex-mcp-http --help", script)
+        self.assertIn("/etc/corthex/backup.env", script)
+        unit = self.read("deploy/corthex-remote.service")
+        self.assertNotIn("backup.env", unit)
+
+    def test_installer_has_transactional_failure_rollback(self) -> None:
+        script = self.read("deploy/install-vps.sh")
+        self.assertIn("rollback_install", script)
+        self.assertIn("trap 'rollback_install", script)
+        self.assertIn("corthex.env.previous", script)
+        self.assertIn("corthex-remote.service.previous", script)
+        self.assertIn("WAS_ACTIVE", script)
+        self.assertIn("systemctl is-active --quiet corthex-remote.service", script)
+
+    def test_installer_serializes_and_rechecks_serve_path_before_claiming_it(self) -> None:
+        script = self.read("deploy/install-vps.sh")
+        self.assertIn("flock 9", script)
+        self.assertGreaterEqual(script.count("tailscale serve status --json"), 2)
+        self.assertNotIn("tailscale serve --yes --https=443 --set-path /corthex off", script)
 
     def test_local_auth_checker_uses_mcp_token_environment_name(self) -> None:
         checker = self.read("deploy/check-local-auth.py")
@@ -125,9 +156,43 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertIn("pg_restore", restore)
         self.assertIn("--exit-on-error", restore)
         self.assertIn("--single-transaction", restore)
-        self.assertIn("sha256sum -c", restore)
+        self.assertIn('sha256sum "$ARCHIVE"', restore)
         self.assertIn("--confirm-empty-target", restore)
         self.assertNotIn("set -x", restore)
+
+    def test_restore_verifies_the_requested_archive_not_checksum_filename(self) -> None:
+        restore = ROOT / "deploy/restore.sh"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            requested = root / "requested.dump"
+            other = root / "other.dump"
+            requested.write_bytes(b"requested")
+            other.write_bytes(b"other")
+            digest = subprocess.check_output(
+                ["sha256sum", str(other)], text=True
+            ).split()[0]
+            (root / "requested.dump.sha256").write_text(
+                f"{digest}  {other}\n", encoding="utf-8"
+            )
+            completed = subprocess.run(
+                [
+                    "bash",
+                    str(restore),
+                    str(requested),
+                    "postgresql://restore.invalid/test",
+                    "--confirm-empty-target",
+                ],
+                env={
+                    **os.environ,
+                    "CORTHEX_BACKUP_ENV_FILE": str(root / "missing.env"),
+                    "PG_RESTORE": "/bin/true",
+                    "PSQL": "/bin/true",
+                },
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(0, completed.returncode)
+        self.assertIn("checksum", completed.stderr.lower())
 
     def test_shell_scripts_parse(self) -> None:
         for path in sorted(DEPLOY.glob("*.sh")):

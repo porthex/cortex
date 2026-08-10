@@ -20,6 +20,14 @@ def has_public_funnel(value: Any) -> bool:
     return False
 
 
+def has_corthex_path(value: Any) -> bool:
+    if isinstance(value, dict):
+        return "/corthex" in value or any(has_corthex_path(child) for child in value.values())
+    if isinstance(value, list):
+        return any(has_corthex_path(item) for item in value)
+    return False
+
+
 def main() -> int:
     try:
         status = json.load(sys.stdin)
@@ -28,6 +36,9 @@ def main() -> int:
         return 2
     if has_public_funnel(status):
         print("Tailscale Funnel is configured; Corthex requires tailnet-only Serve", file=sys.stderr)
+        return 1
+    if has_corthex_path(status):
+        print("Tailscale Serve path /corthex already exists; refusing to replace it", file=sys.stderr)
         return 1
     return 0
 

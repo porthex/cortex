@@ -12,7 +12,7 @@ TARGET_DATABASE_URL=$2
 [[ $3 == --confirm-empty-target ]] || usage
 [[ -r "$ARCHIVE" ]] || { echo "Archive is not readable: $ARCHIVE" >&2; exit 2; }
 
-ENV_FILE=${CORTHEX_ENV_FILE:-/etc/corthex/corthex.env}
+ENV_FILE=${CORTHEX_BACKUP_ENV_FILE:-/etc/corthex/backup.env}
 PG_RESTORE=${PG_RESTORE:-pg_restore}
 PSQL=${PSQL:-psql}
 SOURCE_DATABASE_URL=""
@@ -33,7 +33,21 @@ fi
 
 CHECKSUM="$ARCHIVE.sha256"
 [[ -r "$CHECKSUM" ]] || { echo "Checksum file is not readable: $CHECKSUM" >&2; exit 2; }
-sha256sum -c "$CHECKSUM" >/dev/null
+EXPECTED_CHECKSUM=$(python3 - "$CHECKSUM" <<'PY'
+import re
+import sys
+
+fields = open(sys.argv[1], encoding="utf-8").read().split()
+if not fields or not re.fullmatch(r"[0-9a-fA-F]{64}", fields[0]):
+    raise SystemExit("Checksum file does not contain a SHA-256 digest")
+print(fields[0].lower())
+PY
+)
+ACTUAL_CHECKSUM=$(sha256sum "$ARCHIVE" | python3 -c 'import sys; print(sys.stdin.read().split()[0].lower())')
+[[ "$ACTUAL_CHECKSUM" == "$EXPECTED_CHECKSUM" ]] || {
+  echo "Archive checksum does not match: $ARCHIVE" >&2
+  exit 1
+}
 "$PG_RESTORE" --list "$ARCHIVE" >/dev/null
 USER_TABLES=$("$PSQL" "$TARGET_DATABASE_URL" -X -Atqc \
   "select count(*) from pg_catalog.pg_tables where schemaname not in ('pg_catalog','information_schema');")
