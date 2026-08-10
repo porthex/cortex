@@ -25,9 +25,9 @@ def main() -> int:
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} STATUS_URL", file=sys.stderr)
         return 2
-    token = os.environ.get("CORTHEX_TOKEN", "")
+    token = os.environ.get("CORTHEX_MCP_TOKEN", "")
     if not token:
-        print("CORTHEX_TOKEN is not set", file=sys.stderr)
+        print("CORTHEX_MCP_TOKEN is not set", file=sys.stderr)
         return 2
     wrong = "invalid-" + token[:8]
     try:

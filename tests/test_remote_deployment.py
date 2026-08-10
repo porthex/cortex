@@ -23,10 +23,11 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertIn("User=corthex", unit)
         self.assertIn("Group=corthex", unit)
         self.assertIn("EnvironmentFile=/etc/corthex/corthex.env", unit)
-        self.assertRegex(
+        self.assertIn(
+            "ExecStart=/opt/corthex/.venv/bin/corthex-mcp-http",
             unit,
-            r"ExecStart=/opt/corthex/\.venv/bin/corthex serve --host 127\.0\.0\.1 --port 8890",
         )
+        self.assertNotIn("corthex serve", unit)
         self.assertIn("NoNewPrivileges=true", unit)
         self.assertIn("ProtectSystem=strict", unit)
         self.assertIn("ProtectHome=true", unit)
@@ -62,7 +63,7 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
-            env = dict(os.environ, CORTHEX_TOKEN=token)
+            env = dict(os.environ, CORTHEX_MCP_TOKEN=token)
             checked = subprocess.run(
                 [
                     "python3",
@@ -94,6 +95,25 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertIn("install -m 0600", script)
         self.assertIn("systemctl enable corthex-remote.service", script)
         self.assertIn("systemctl restart corthex-remote.service", script)
+
+    def test_installer_writes_mcp_runtime_environment_contract(self) -> None:
+        script = self.read("deploy/install-vps.sh")
+        for expected in (
+            "/opt/corthex/.venv.next/bin/corthex-mcp-http --help",
+            "CORTHEX_MCP_TOKEN",
+            "CORTHEX_BANKS_JSON",
+            "CORTHEX_MCP_PUBLIC_URL",
+            "CORTHEX_MCP_HOST=127.0.0.1",
+            "CORTHEX_MCP_PORT=8890",
+        ):
+            self.assertIn(expected, script)
+        self.assertNotIn("CORTHEX_ALLOWED_BANKS", script)
+        self.assertNotIn("CORTHEX_TOKEN=", script)
+
+    def test_local_auth_checker_uses_mcp_token_environment_name(self) -> None:
+        checker = self.read("deploy/check-local-auth.py")
+        self.assertIn("CORTHEX_MCP_TOKEN", checker)
+        self.assertNotIn('os.environ["CORTHEX_TOKEN"]', checker)
 
     def test_backup_and_restore_use_native_postgres_tools_without_leaking_url(self) -> None:
         backup = self.read("deploy/backup.sh")
@@ -146,6 +166,16 @@ class RemoteDeploymentContractTests(unittest.TestCase):
             "## Rollback",
         ):
             self.assertIn(heading, doc)
+        for contract in (
+            "corthex-mcp-http",
+            "CORTHEX_BANKS_JSON",
+            "CORTHEX_MCP_TOKEN",
+            "/corthex/mcp",
+            "/corthex/v1/status",
+        ):
+            self.assertIn(contract, doc)
+        self.assertNotIn("CORTHEX_ALLOWED_BANKS", doc)
+        self.assertNotIn("`corthex serve`", doc)
         self.assertNotRegex(doc, r"(?:100\.\d+\.\d+\.\d+|tailaf[0-9a-f]+)")
 
 

@@ -32,7 +32,7 @@ install -d -o corthex -g corthex -m 0750 /var/lib/corthex /var/log/corthex
 rm -rf /opt/corthex/.venv.next
 python3 -m venv /opt/corthex/.venv.next
 /opt/corthex/.venv.next/bin/pip install --disable-pip-version-check "$SOURCE_DIR"
-/opt/corthex/.venv.next/bin/corthex --help >/dev/null
+/opt/corthex/.venv.next/bin/corthex-mcp-http --help >/dev/null
 
 read_existing() {
   local key=$1
@@ -47,21 +47,26 @@ for line in open(path, encoding="utf-8"):
 PY
 }
 
-existing_token=$(read_existing CORTHEX_TOKEN)
-TOKEN=${CORTHEX_TOKEN:-$existing_token}
+existing_token=$(read_existing CORTHEX_MCP_TOKEN)
+TOKEN=${CORTHEX_MCP_TOKEN:-$existing_token}
 [[ -n "$TOKEN" ]] || TOKEN=$(openssl rand -base64 48 | tr -d '\n')
 existing_hindsight=$(read_existing CORTHEX_HINDSIGHT_URL)
 HINDSIGHT_URL=${CORTHEX_HINDSIGHT_URL:-${existing_hindsight:-http://127.0.0.1:9177}}
-existing_banks=$(read_existing CORTHEX_ALLOWED_BANKS)
-ALLOWED_BANKS=${CORTHEX_ALLOWED_BANKS:-${existing_banks:-corthex}}
+existing_banks=$(read_existing CORTHEX_BANKS_JSON)
+BANKS_JSON=${CORTHEX_BANKS_JSON:-${existing_banks:-'{"corthex":"Corthex memory"}'}}
+BANKS_JSON=$(python3 -c 'import json,sys; value=json.loads(sys.argv[1]); assert isinstance(value,dict) and value; print(json.dumps(value,separators=(",",":")))' "$BANKS_JSON")
 existing_database=$(read_existing CORTHEX_DATABASE_URL)
 DATABASE_URL=${CORTHEX_DATABASE_URL:-$existing_database}
+HOSTNAME=$(tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')
 ENV_TMP=$(mktemp)
 trap 'rm -f "$ENV_TMP"; rm -rf /opt/corthex/.venv.next' EXIT
 {
-  printf 'CORTHEX_TOKEN=%s\n' "$TOKEN"
+  printf 'CORTHEX_MCP_TOKEN=%s\n' "$TOKEN"
   printf 'CORTHEX_HINDSIGHT_URL=%s\n' "$HINDSIGHT_URL"
-  printf 'CORTHEX_ALLOWED_BANKS=%s\n' "$ALLOWED_BANKS"
+  printf 'CORTHEX_BANKS_JSON=%s\n' "$BANKS_JSON"
+  printf 'CORTHEX_MCP_PUBLIC_URL=https://%s/corthex/mcp\n' "$HOSTNAME"
+  printf 'CORTHEX_MCP_HOST=127.0.0.1\n'
+  printf 'CORTHEX_MCP_PORT=8890\n'
   printf 'CORTHEX_STATE_DIR=/var/lib/corthex\n'
   printf 'CORTHEX_LOG_DIR=/var/log/corthex\n'
   if [[ -n "$DATABASE_URL" ]]; then
@@ -97,12 +102,11 @@ for _ in {1..30}; do
 done
 curl --fail --silent --show-error http://127.0.0.1:8890/health >/dev/null
 
-CORTHEX_TOKEN="$TOKEN" python3 "$SOURCE_DIR/deploy/check-local-auth.py" \
+CORTHEX_MCP_TOKEN="$TOKEN" python3 "$SOURCE_DIR/deploy/check-local-auth.py" \
   http://127.0.0.1:8890/v1/status
 
 # This only adds the scoped handler; never reset the pre-existing Serve map.
 tailscale serve --bg --yes --set-path /corthex http://127.0.0.1:8890
 
-HOSTNAME=$(tailscale status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')
 printf 'Corthex is active at https://%s/corthex\n' "$HOSTNAME"
 printf 'Bearer token stored in /etc/corthex/corthex.env (mode 0600); it was not printed.\n'

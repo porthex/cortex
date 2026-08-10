@@ -7,7 +7,7 @@ Prerequisites:
 - Ubuntu with systemd, Python 3.11+, `python3-venv`, `curl`, `openssl`, and PostgreSQL client tools.
 - Tailscale installed, connected, MagicDNS/HTTPS enabled, and access policy restricted to intended clients.
 - Hindsight reachable only on loopback. Its database URL must be available to the operator for backup; clients never receive it.
-- A checked-out Corthex revision containing `pyproject.toml` and the `corthex serve` entry point.
+- A checked-out Corthex revision containing `pyproject.toml` and the `corthex-mcp-http` entry point.
 
 ## Install
 
@@ -24,7 +24,7 @@ Install from the exact reviewed checkout:
 
 ```bash
 sudo CORTHEX_HINDSIGHT_URL=http://127.0.0.1:9177 \
-  CORTHEX_ALLOWED_BANKS=corthex \
+  CORTHEX_BANKS_JSON='{"corthex":"Corthex memory"}' \
   CORTHEX_DATABASE_URL='postgresql://…' \
   ./deploy/install-vps.sh "$PWD"
 ```
@@ -34,11 +34,11 @@ The installer:
 1. refuses a public Funnel configuration;
 2. creates the non-login `corthex` account;
 3. installs the package into `/opt/corthex/.venv`;
-4. stores generated token material in `/etc/corthex/corthex.env` with mode `0600`;
+4. stores generated `CORTHEX_MCP_TOKEN` material and the validated MCP runtime contract in `/etc/corthex/corthex.env` with mode `0600`;
 5. enables `corthex-remote.service` on `127.0.0.1:8890`;
 6. adds only the `/corthex` Tailscale Serve handler, preserving existing routes.
 
-Read the token only on the host and move it through an approved secret store. Do not paste it into issues, logs, shell history, or client configuration files that are synced.
+Read `CORTHEX_MCP_TOKEN` only on the host and move it through an approved secret store. Do not paste it into issues, logs, shell history, or client configuration files that are synced. Upgrades preserve the existing token and `CORTHEX_BANKS_JSON` unless the operator explicitly supplies replacements.
 
 ## Verify
 
