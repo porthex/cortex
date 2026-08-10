@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import json
-from typing import Any
+from typing import Any, cast
 
 import uvicorn
 
 from .auth import StaticTokenVerifier
-from .contracts import MemoryBackend
+from .contracts import MemoryBackend, RecallResult, ReflectResult, RetainResult
 from .hindsight_adapter import HindsightMemoryBackend
 from .mcp_server import create_mcp_server
 from .runtime import RuntimeConfig
@@ -58,22 +58,19 @@ class AuthenticatedMcpApp:
                 and await self._verifier.verify_token(token) is not None
             )
             if not accepted:
+                body = b'{"error":{"code":"authentication_failed","message":"Authentication failed"}}'
                 await send(
                     {
                         "type": "http.response.start",
                         "status": 401,
                         "headers": [
                             (b"content-type", b"application/json"),
+                            (b"content-length", str(len(body)).encode()),
                             (b"www-authenticate", b'Bearer realm="corthex"'),
                         ],
                     }
                 )
-                await send(
-                    {
-                        "type": "http.response.body",
-                        "body": b'{"error":"unauthorized"}',
-                    }
-                )
+                await send({"type": "http.response.body", "body": body})
                 return
             if path.startswith("/v1/"):
                 await self._handle_v1(path, method_name, receive, send)
@@ -170,8 +167,25 @@ class AuthenticatedMcpApp:
                 },
             )
             return
-        if method != "POST" or path not in {"/v1/retain", "/v1/recall", "/v1/reflect"}:
-            await self._send_json(send, 404, {"error": "not_found"})
+        operations = {
+            "/v1/retain": ("retain", False),
+            "/v1/recall": ("recall", False),
+            "/v1/reflect": ("reflect", False),
+            "/v1/memories/retain": ("retain", True),
+            "/v1/memories/recall": ("recall", True),
+            "/v1/memories/reflect": ("reflect", True),
+        }
+        if method != "POST" or path not in operations:
+            error = (
+                {"error": {"code": "not_found", "message": "Route not found"}}
+                if path.startswith("/v1/memories/")
+                else {"error": "not_found"}
+            )
+            await self._send_json(
+                send,
+                404,
+                error,
+            )
             return
         chunks: list[bytes] = []
         more = True
@@ -182,23 +196,84 @@ class AuthenticatedMcpApp:
         try:
             payload = json.loads(b"".join(chunks))
         except (UnicodeDecodeError, json.JSONDecodeError):
-            await self._send_json(send, 400, {"error": "invalid_json"})
+            error = (
+                {"error": {"code": "invalid_json", "message": "Request body is not valid JSON"}}
+                if path.startswith("/v1/memories/")
+                else {"error": "invalid_json"}
+            )
+            await self._send_json(
+                send,
+                400,
+                error,
+            )
             return
-        bank_id = payload.get("bank_id") if isinstance(payload, dict) else None
+        operation, cli_contract = operations[path]
+        bank_key = "bank" if cli_contract else "bank_id"
+        bank_id = payload.get(bank_key) if isinstance(payload, dict) else None
         if bank_id not in self._banks:
-            await self._send_json(send, 403, {"error": "bank_forbidden"})
+            error = (
+                {"error": {"code": "bank_forbidden", "message": "Bank is not allowed"}}
+                if cli_contract
+                else {"error": "bank_forbidden"}
+            )
+            await self._send_json(
+                send,
+                403,
+                error,
+            )
             return
+        cli_limit = None
+        if cli_contract and operation == "recall":
+            cli_limit = payload.get("limit", 10)
+            if isinstance(cli_limit, bool) or not isinstance(cli_limit, int) or cli_limit < 1:
+                await self._send_json(
+                    send,
+                    400,
+                    {"error": {"code": "invalid_request", "message": "limit must be positive"}},
+                )
+                return
         try:
-            if path == "/v1/retain":
-                result = await self._backend.retain(bank_id, payload["content"], payload.get("context"))
-            elif path == "/v1/recall":
+            if operation == "retain":
+                content_key = "text" if cli_contract else "content"
+                result = await self._backend.retain(
+                    bank_id, payload[content_key], payload.get("context")
+                )
+            elif operation == "recall":
                 result = await self._backend.recall(bank_id, payload["query"], payload.get("max_tokens", 4096))
             else:
                 result = await self._backend.reflect(bank_id, payload["query"], payload.get("context"))
         except (KeyError, TypeError, ValueError) as exc:
-            await self._send_json(send, 400, {"error": "invalid_request", "message": str(exc)})
+            error = (
+                {"error": {"code": "invalid_request", "message": str(exc)}}
+                if cli_contract
+                else {"error": "invalid_request", "message": str(exc)}
+            )
+            await self._send_json(
+                send,
+                400,
+                error,
+            )
             return
-        await self._send_json(send, 200, result.model_dump(mode="json"))
+        if not cli_contract:
+            response = result.model_dump(mode="json")
+        elif operation == "retain":
+            retained = cast(RetainResult, result)
+            response = {
+                "retained": retained.accepted,
+                "bank": bank_id,
+                "operation_id": retained.operation_id,
+            }
+        elif operation == "recall":
+            recalled = cast(RecallResult, result)
+            memories = [item.text for item in recalled.results]
+            if not memories and recalled.text:
+                memories = [recalled.text]
+            assert isinstance(cli_limit, int)
+            response = {"bank": bank_id, "memories": memories[:cli_limit]}
+        else:
+            reflected = cast(ReflectResult, result)
+            response = {"bank": bank_id, "reflection": reflected.text}
+        await self._send_json(send, 200, response)
 
     @staticmethod
     async def _send_error(send, request_id, code: int, message: str, data=None) -> None:

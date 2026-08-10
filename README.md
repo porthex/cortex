@@ -61,7 +61,7 @@ Use `corthex --json <command>` for machine-readable output. See the [CLI guide](
 
 ## Remote Brain
 
-The Linux VPS deployment runs one authoritative Corthex instance on loopback and publishes only its authenticated facade through tailnet-only Tailscale Serve HTTPS. Desktop clients can therefore connect without installing Hindsight, PostgreSQL, or a local model. Raw Hindsight and PostgreSQL remain unreachable through remote routes.
+The Linux VPS deployment runs one authoritative Corthex instance on loopback and publishes only its authenticated facade through tailnet-only Tailscale Serve HTTPS. The facade implements both the bundled CLI contract and MCP transport, so desktop clients can connect without installing Hindsight, PostgreSQL, or a local model. Raw Hindsight and PostgreSQL remain unreachable through remote routes.
 
 The systemd unit uses a dedicated non-login account and bounded writable directories. The reviewed install command also performs transactional upgrades without replacing unrelated Tailscale Serve routes. Native PostgreSQL backup and empty-target restore scripts provide a reproducible recovery drill. See the [Remote Brain VPS runbook](docs/REMOTE_BRAIN_VPS.md) and [transport ADR](docs/adr/0001-remote-brain-transport.md).
 

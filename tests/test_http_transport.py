@@ -17,12 +17,14 @@ from corthex.mcp_http import build_http_app
 class IsolatedMemory:
     def __init__(self):
         self.items = []
+        self.recall_calls = 0
 
     async def retain(self, bank_id, content, context=None):
         self.items.append(content)
         return RetainResult(accepted=True, operation_id="http-op")
 
     async def recall(self, bank_id, query, max_tokens=4096):
+        self.recall_calls += 1
         return RecallResult(text="\n".join(self.items) or "http recall", results=[])
 
     async def reflect(self, bank_id, query, context=None):
@@ -239,6 +241,72 @@ async def test_http_app_hosts_health_and_v1_memory_facade() -> None:
     assert retained.json() == {"accepted": True, "operation_id": "http-op"}
     assert recalled.json()["text"] == "REST memory"
     assert reflected.json()["text"] == "http reflect"
+
+
+@pytest.mark.asyncio
+async def test_v1_facade_implements_the_shipped_cli_contract() -> None:
+    backend = IsolatedMemory()
+    app = build_http_app(
+        backend,
+        allowed_banks={"test-bank": "Isolated"},
+        token="test-token",
+        host="localhost",
+    )
+    transport = httpx2.ASGITransport(app=app)
+    headers = {"Authorization": "Bearer test-token"}
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:8765") as client:
+        retained = await client.post(
+            "/v1/memories/retain",
+            headers=headers,
+            json={"bank": "test-bank", "text": "CLI memory"},
+        )
+        recalled = await client.post(
+            "/v1/memories/recall",
+            headers=headers,
+            json={"bank": "test-bank", "query": "memory", "limit": 10},
+        )
+        reflected = await client.post(
+            "/v1/memories/reflect",
+            headers=headers,
+            json={"bank": "test-bank", "query": "meaning"},
+        )
+        forbidden = await client.post(
+            "/v1/memories/recall",
+            headers=headers,
+            json={"bank": "other-bank", "query": "memory", "limit": 10},
+        )
+        legacy_forbidden = await client.post(
+            "/v1/recall",
+            headers=headers,
+            json={"bank_id": "other-bank", "query": "memory"},
+        )
+        zero_limit = await client.post(
+            "/v1/memories/recall",
+            headers=headers,
+            json={"bank": "test-bank", "query": "memory", "limit": 0},
+        )
+        boolean_limit = await client.post(
+            "/v1/memories/recall",
+            headers=headers,
+            json={"bank": "test-bank", "query": "memory", "limit": True},
+        )
+        unauthorized = await client.get("/v1/status")
+
+    assert retained.json() == {"retained": True, "bank": "test-bank", "operation_id": "http-op"}
+    assert recalled.json() == {"bank": "test-bank", "memories": ["CLI memory"]}
+    assert reflected.json() == {"bank": "test-bank", "reflection": "http reflect"}
+    assert forbidden.status_code == 403
+    assert forbidden.json() == {
+        "error": {"code": "bank_forbidden", "message": "Bank is not allowed"}
+    }
+    assert legacy_forbidden.json() == {"error": "bank_forbidden"}
+    assert zero_limit.status_code == 400
+    assert boolean_limit.status_code == 400
+    assert backend.recall_calls == 1
+    assert unauthorized.status_code == 401
+    assert unauthorized.json() == {
+        "error": {"code": "authentication_failed", "message": "Authentication failed"}
+    }
 
 
 @pytest.mark.asyncio
