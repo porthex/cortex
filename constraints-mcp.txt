@@ -1,0 +1,3 @@
+# Exact MCP dependency pin for the 2026-07-28 architecture.
+# Generate and commit a transitive lock with uv; do not widen this range.
+mcp==2.0.0

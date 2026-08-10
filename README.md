@@ -2,6 +2,8 @@
 
 Cortex is a local shared-memory service for Codex/ChatGPT Desktop, Claude Desktop, and other MCP clients. Hindsight 0.8.4 stores the memories, PostgreSQL stores the bank, and Ollama runs `gpt-oss:20b` for extraction and reflection.
 
+> **Current baseline and Corthex protocol policy:** This repository currently ships the Windows Cortex baseline documented below. The public Corthex server is under active development; its MCP implementation is required to use the official stateless `2026-07-28` architecture and exact Python SDK `mcp==2.0.0` pin. The accepted compatibility contract and executable regression fixture are in [`docs/adr/0001-mcp-2026-architecture.md`](docs/adr/0001-mcp-2026-architecture.md) and [`tests/fixtures/mcp-2026-07-28-contract.json`](tests/fixtures/mcp-2026-07-28-contract.json). This policy does not claim that the existing legacy gateway already conforms.
+
 ## How it works
 
 ```text

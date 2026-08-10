@@ -1,0 +1,174 @@
+{
+  "protocol_version": "2026-07-28",
+  "sdk": {
+    "package": "mcp",
+    "version": "2.0.0"
+  },
+  "inspector": {
+    "package": "@modelcontextprotocol/inspector",
+    "version": "2.1.0"
+  },
+  "conformance": {
+    "package": "@modelcontextprotocol/conformance",
+    "version": "0.2.0-alpha.10",
+    "reason": "Frozen 2026-07-28 requirements anchor; use this exact referee even though v0.1.16 is the latest stable release."
+  },
+  "core": {
+    "initialize_required": false,
+    "protocol_sessions": false,
+    "server_jsonrpc_requests": false,
+    "client_jsonrpc_responses": false,
+    "experimental_extensions": []
+  },
+  "legacy": {
+    "mode": "bounded-dual-era-only",
+    "enabled_by_default": false,
+    "activation": "Only after a named supported client is proven to require an official legacy revision; keep modern requests stateless."
+  },
+  "cases": [
+    {
+      "id": "direct-request-without-discovery",
+      "required": true,
+      "transport": "both",
+      "request": {"method": "tools/list", "first_request": true, "modern_meta": true},
+      "expected": {"accepted": true},
+      "prevents": "Treating server/discover or initialize as a session bootstrap."
+    },
+    {
+      "id": "missing-meta",
+      "required": true,
+      "transport": "both",
+      "request": {"method": "tools/list", "omit": "params._meta"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32602},
+      "prevents": "Remembering protocol context from a prior request."
+    },
+    {
+      "id": "missing-protocol-version",
+      "required": true,
+      "transport": "both",
+      "request": {"method": "tools/list", "omit": "params._meta.io.modelcontextprotocol/protocolVersion"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32602},
+      "prevents": "Connection-scoped version negotiation."
+    },
+    {
+      "id": "missing-client-capabilities",
+      "required": true,
+      "transport": "both",
+      "request": {"method": "tools/list", "omit": "params._meta.io.modelcontextprotocol/clientCapabilities"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32602},
+      "prevents": "Connection-scoped capability negotiation."
+    },
+    {
+      "id": "unsupported-protocol-version",
+      "required": true,
+      "transport": "both",
+      "request": {"method": "tools/list", "protocol_version": "1900-01-01"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32022, "data_fields": ["supported", "requested"]},
+      "prevents": "Silent version downgrade or initialize fallback on a recognized modern error."
+    },
+    {
+      "id": "http-protocol-header-mismatch",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"header": {"MCP-Protocol-Version": "2025-11-25"}, "body_protocol_version": "2026-07-28"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32020},
+      "prevents": "Header-only or body-only routing."
+    },
+    {
+      "id": "http-method-header-mismatch",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"header": {"Mcp-Method": "resources/list"}, "body_method": "tools/list"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32020},
+      "prevents": "Intermediary/application method confusion."
+    },
+    {
+      "id": "http-name-header-mismatch",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"method": "tools/call", "header": {"Mcp-Name": "wrong"}, "body_name": "corthex_recall"},
+      "expected": {"http_status": 400, "jsonrpc_error": -32020},
+      "prevents": "Intermediary/application target confusion."
+    },
+    {
+      "id": "http-get-rejected",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"http_method": "GET"},
+      "expected": {"http_status": 405},
+      "prevents": "Reintroducing the removed standalone SSE endpoint."
+    },
+    {
+      "id": "http-delete-rejected",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"http_method": "DELETE"},
+      "expected": {"http_status": 405},
+      "prevents": "Reintroducing session termination."
+    },
+    {
+      "id": "legacy-session-header-ignored",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"header": {"Mcp-Session-Id": "obsolete-canary"}, "modern_meta": true},
+      "expected": {"accepted": true, "response_header_absent": "Mcp-Session-Id"},
+      "prevents": "Session affinity, minting, or echoing in modern mode."
+    },
+    {
+      "id": "stdio-cancellation-notification",
+      "required": true,
+      "transport": "stdio",
+      "request": {"method": "notifications/cancelled", "params": {"requestId": "in-flight"}},
+      "expected": {"work_stops": true, "further_messages": false},
+      "prevents": "Using process teardown or HTTP semantics for stdio cancellation."
+    },
+    {
+      "id": "http-cancellation-by-stream-close",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"signal": "close_response_stream"},
+      "expected": {"work_stops": true, "further_messages": false},
+      "prevents": "Sending notifications/cancelled over modern Streamable HTTP."
+    },
+    {
+      "id": "server-jsonrpc-request-rejected",
+      "required": true,
+      "transport": "both",
+      "request": {"server_emits": {"jsonrpc": "2.0", "id": 99, "method": "sampling/createMessage"}},
+      "expected": {"client_rejects_protocol_violation": true},
+      "prevents": "Legacy server-initiated requests instead of MRTR InputRequiredResult."
+    },
+    {
+      "id": "client-jsonrpc-response-rejected",
+      "required": true,
+      "transport": "both",
+      "request": {"client_sends": {"jsonrpc": "2.0", "id": 99, "result": {}}},
+      "expected": {"server_rejects_protocol_violation": true},
+      "prevents": "Legacy client responses to server-initiated requests."
+    },
+    {
+      "id": "unauthenticated-http-rejected",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"authorization": null},
+      "expected": {"http_status": 401},
+      "prevents": "Unauthenticated remote memory access."
+    },
+    {
+      "id": "wrong-audience-token-rejected",
+      "required": true,
+      "transport": "streamable-http",
+      "request": {"authorization": "valid-token-for-another-resource"},
+      "expected": {"http_status": 401},
+      "prevents": "Token passthrough and confused-deputy access."
+    },
+    {
+      "id": "legacy-initialize-diagnostic",
+      "required": true,
+      "transport": "both",
+      "request": {"method": "initialize", "modern_meta": false},
+      "expected": {"accepted": false, "diagnostic_mentions_supported_versions": true},
+      "prevents": "Making initialize the modern core while preserving actionable diagnostics for old clients."
+    }
+  ]
+}
