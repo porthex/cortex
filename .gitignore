@@ -18,6 +18,7 @@ dist/
 *.egg-info/
 
 # Local environment and secrets
+.venv/
 .env
 .env.*
 *.local
