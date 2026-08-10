@@ -5,21 +5,35 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "corthex"
 version = "0.1.0"
-description = "Cross-platform client and operator CLI for Corthex Remote Brain"
-readme = "docs/cli.md"
+description = "Cross-platform client, MCP server, and operator tools for Corthex Remote Brain"
+readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{name = "Porthex"}]
-dependencies = []
+dependencies = [
+  "hindsight-client>=0.9,<1",
+  "mcp==2.0.0",
+]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
   "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=9,<10", "pytest-asyncio>=1.4,<2"]
+
 [project.scripts]
 corthex = "corthex.cli:entrypoint"
+corthex-mcp-http = "corthex.mcp_http:main"
+corthex-mcp-stdio = "corthex.mcp_stdio:main"
+corthex-mcp-stdio-hermes = "corthex.mcp_stdio:main_hermes_legacy"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["corthex*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"
+testpaths = ["tests"]

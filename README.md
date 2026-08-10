@@ -18,9 +18,10 @@ Corthex uses [Hindsight](https://github.com/vectorize-io/hindsight) as its under
 
 ## What ships today
 
-This repository contains three working parts:
+This repository contains four working parts:
 
 - A dependency-free Python 3.10+ CLI for a compatible local or remote Corthex `/v1` gateway.
+- An authenticated `corthex-mcp-http` service exposing stateless MCP at `/mcp` and the CLI facade at `/v1`, plus windowless modern and Hermes-compatible stdio adapters.
 - Deterministic migration tools for combining existing Hindsight banks without deleting the sources.
 - The preserved Windows Cortex Brain baseline that Corthex is being generalized from.
 
@@ -74,6 +75,8 @@ Local models and storage can reduce outside data flow, but they do not make a de
 ## Repository map
 
 - [`docs/cli.md`](docs/cli.md): install, configure, and use the cross-platform client
+- [`docs/mcp.md`](docs/mcp.md): configure the authenticated HTTP service and stdio adapters
+- [`docs/adr/0001-mcp-2026-architecture.md`](docs/adr/0001-mcp-2026-architecture.md): pinned MCP 2026-07-28 protocol contract
 - [`docs/UNIFIED_MEMORY.md`](docs/UNIFIED_MEMORY.md): migration, backup gates, verification, and rollback
 - [`docs/architecture.md`](docs/architecture.md): target trust boundaries and security invariants
 - [`docs/configuration.md`](docs/configuration.md): intended deployment configuration and validation
