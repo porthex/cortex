@@ -33,7 +33,7 @@ The installer:
 
 1. refuses a public Funnel configuration;
 2. creates the non-login `corthex` account;
-3. installs the package into `/opt/corthex/.venv`;
+3. installs the package into an immutable `/opt/corthex/releases/...` virtual environment and atomically points `/opt/corthex/.venv` at it, so generated entry-point shebangs remain valid;
 4. stores generated `CORTHEX_MCP_TOKEN` material and the validated MCP runtime contract in `/etc/corthex/corthex.env` with mode `0600`, while isolating the database backup credential in root-only `/etc/corthex/backup.env`;
 5. enables `corthex-remote.service` on `127.0.0.1:8890`;
 6. refuses to replace a conflicting `/corthex` handler, recognizes its exact loopback target during upgrades, then adds only that Tailscale Serve path while preserving other routes.

@@ -145,6 +145,17 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         unit = self.read("deploy/corthex-remote.service")
         self.assertNotIn("backup.env", unit)
 
+    def test_installer_does_not_relocate_a_virtualenv_after_entrypoints_are_written(self) -> None:
+        script = self.read("deploy/install-vps.sh")
+        self.assertIn("/opt/corthex/releases", script)
+        self.assertIn("ln -s", script)
+        self.assertNotIn("python3 -m venv /opt/corthex/.venv.next", script)
+        self.assertNotIn("mv /opt/corthex/.venv.next /opt/corthex/.venv", script)
+        self.assertLess(
+            script.index("trap 'cleanup_release' EXIT"),
+            script.index('python3 -m venv "$NEW_RELEASE"'),
+        )
+
     def test_installer_has_transactional_failure_rollback(self) -> None:
         script = self.read("deploy/install-vps.sh")
         self.assertIn("rollback_install", script)
