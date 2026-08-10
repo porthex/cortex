@@ -1,11 +1,11 @@
 {
   "mcpServers": {
-    "corthex-http": {
+    "cortex-http": {
       "type": "streamable-http",
       "url": "http://127.0.0.1:8766/mcp",
       "protocolEra": "modern"
     },
-    "corthex-stdio": {
+    "cortex-stdio": {
       "type": "stdio",
       "command": "uv",
       "args": ["run", "python", "-m", "tests.stdio_fixture"],

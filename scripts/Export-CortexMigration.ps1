@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-    $OutputDirectory = Join-Path $projectRoot ("backups\corthex-migration-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+    $OutputDirectory = Join-Path $projectRoot ("backups\cortex-migration-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
 }
 $null = New-Item -ItemType Directory -Path $OutputDirectory -Force
 
@@ -16,7 +16,7 @@ $null = New-Item -ItemType Directory -Path $OutputDirectory -Force
 & (Join-Path $PSScriptRoot "Start-CortexBrain.ps1") | Out-Null
 $health = Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8888/health" -TimeoutSec 30
 if ($health.status -ne "healthy" -or $health.database -ne "connected") {
-    throw "Corthex source Hindsight health check failed closed."
+    throw "Cortex source Hindsight health check failed closed."
 }
 
 $bankBackupOutput = @(& (Join-Path $PSScriptRoot "Backup-CortexBrain.ps1") -Type Bank)
@@ -50,18 +50,18 @@ if ($null -eq $python) {
     $python = Get-Command py.exe -ErrorAction SilentlyContinue
 }
 if ($null -eq $python) {
-    throw "Python is required to create the deterministic Corthex migration export."
+    throw "Python is required to create the deterministic Cortex migration export."
 }
 
 $inventory = Join-Path $OutputDirectory "windows-cortex-inventory.json"
 $memories = Join-Path $OutputDirectory "windows-cortex-memories.jsonl"
 if ($python.Name -eq "py.exe") {
-    & $python.Source -3.12 (Join-Path $projectRoot "src\corthex\migration.py") --url "http://127.0.0.1:8888" inventory --bank cortex | Set-Content -LiteralPath $inventory -Encoding UTF8
-    & $python.Source -3.12 (Join-Path $projectRoot "src\corthex\migration.py") --url "http://127.0.0.1:8888" export --bank cortex --source windows-cortex --output $memories
+    & $python.Source -3.12 (Join-Path $projectRoot "src\cortex\migration.py") --url "http://127.0.0.1:8888" inventory --bank cortex | Set-Content -LiteralPath $inventory -Encoding UTF8
+    & $python.Source -3.12 (Join-Path $projectRoot "src\cortex\migration.py") --url "http://127.0.0.1:8888" export --bank cortex --source windows-cortex --output $memories
 }
 else {
-    & $python.Source (Join-Path $projectRoot "src\corthex\migration.py") --url "http://127.0.0.1:8888" inventory --bank cortex | Set-Content -LiteralPath $inventory -Encoding UTF8
-    & $python.Source (Join-Path $projectRoot "src\corthex\migration.py") --url "http://127.0.0.1:8888" export --bank cortex --source windows-cortex --output $memories
+    & $python.Source (Join-Path $projectRoot "src\cortex\migration.py") --url "http://127.0.0.1:8888" inventory --bank cortex | Set-Content -LiteralPath $inventory -Encoding UTF8
+    & $python.Source (Join-Path $projectRoot "src\cortex\migration.py") --url "http://127.0.0.1:8888" export --bank cortex --source windows-cortex --output $memories
 }
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $memories)) {
     throw "Deterministic source export failed."
@@ -74,7 +74,7 @@ $manifest = [ordered]@{
     schema_version = 1
     createdAtUtc = [DateTime]::UtcNow.ToString("o")
     migration_source = "windows-cortex"
-    product = "Corthex"
+    product = "Cortex"
     engine = "Hindsight 0.8.4"
     api_version = "0.8.4"
     source_bank = "cortex"

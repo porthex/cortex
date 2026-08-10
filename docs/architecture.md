@@ -1,6 +1,6 @@
 # Architecture
 
-Corthex is intended to give multiple AI clients one governed long-term memory boundary. Hindsight supplies the underlying memory engine; the target Corthex architecture adds shared client integration, access control, policy, lifecycle, and operations around it.
+Cortex is intended to give multiple AI clients one governed long-term memory boundary. Hindsight supplies the underlying memory engine; the target Cortex architecture adds shared client integration, access control, policy, lifecycle, and operations around it.
 
 > This document defines a target architecture and required security invariants. The preserved Cortex Brain baseline currently provides a loopback, bearer-authenticated gateway to one fixed bank. It does not yet implement or prove the per-client authorization, policy, audit, or migration controls below.
 
@@ -10,7 +10,7 @@ Corthex is intended to give multiple AI clients one governed long-term memory bo
 AI clients
     │ authenticated requests
     ▼
-Corthex gateway
+Cortex gateway
     ├── identity and tenant/bank authorization
     ├── input validation and request limits
     ├── memory policy and redaction
@@ -33,7 +33,7 @@ An optional inspection interface may read through the same authenticated policy 
 
 1. **Client boundary.** Every client is untrusted until authenticated. Client identity must map explicitly to allowed tenants or banks.
 2. **Gateway boundary.** The target gateway must validate requests, apply memory policy, and emit metadata-only audit events. Failure to establish identity or policy state must deny the request.
-3. **Engine boundary.** Hindsight is reachable only from Corthex services on a private network. Corthex does not expose the engine or database directly to clients.
+3. **Engine boundary.** Hindsight is reachable only from Cortex services on a private network. Cortex does not expose the engine or database directly to clients.
 4. **Storage boundary.** Runtime credentials are scoped to the required database and injected outside version control. Backups are encrypted and access-controlled separately.
 5. **Model boundary.** Remote model calls are a data-egress boundary. Deployments must choose providers and redaction policy appropriate for their data.
 
@@ -66,4 +66,4 @@ The architecture does not require a specific orchestrator. A production deployme
 
 ## Relationship to Hindsight
 
-[Hindsight](https://github.com/vectorize-io/hindsight) is a separate open-source project and the underlying memory engine. Corthex composes and operates Hindsight; it does not fork, copy, or relicense Hindsight source. See [third-party notices](../THIRD_PARTY_NOTICES.md).
+[Hindsight](https://github.com/vectorize-io/hindsight) is a separate open-source project and the underlying memory engine. Cortex composes and operates Hindsight; it does not fork, copy, or relicense Hindsight source. See [third-party notices](../THIRD_PARTY_NOTICES.md).

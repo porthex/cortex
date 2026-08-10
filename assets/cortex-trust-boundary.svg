@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">Cortex Remote Brain trust boundary</title>
+  <desc id="desc">Remote clients reach only the authenticated Cortex facade over private tailnet HTTPS while Hindsight and PostgreSQL remain private on the server.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#89939c"/></marker></defs>
+  <rect width="1200" height="430" rx="24" fill="#050607"/>
+  <rect x="390" y="45" width="750" height="340" rx="24" fill="#090b0d" stroke="#3c454d" stroke-width="2" stroke-dasharray="9 8"/>
+  <text x="425" y="82" fill="#89939c" font-family="Inter,Arial,sans-serif" font-size="16" letter-spacing="2">PRIVATE SERVER BOUNDARY</text>
+  <g fill="none" stroke="#89939c" stroke-width="3" marker-end="url(#arrow)"><path d="M285 215H470"/><path d="M730 175H845"/><path d="M730 255H845"/></g>
+  <g font-family="Inter,Arial,sans-serif" text-anchor="middle">
+    <g><rect x="60" y="140" width="225" height="150" rx="18" fill="#0d1012" stroke="#3c454d" stroke-width="2"/><text x="172" y="195" fill="#f4f6f8" font-size="23" font-weight="700">Remote clients</text><text x="172" y="235" fill="#89939c" font-size="17">tailnet HTTPS</text><text x="172" y="263" fill="#89939c" font-size="15">bearer authenticated</text></g>
+    <g><rect x="470" y="125" width="260" height="180" rx="20" fill="#0d1012" stroke="#f4f6f8" stroke-width="3"/><text x="600" y="185" fill="#f4f6f8" font-size="28" font-weight="700">Cortex facade</text><text x="600" y="228" fill="#c6ccd1" font-size="17">MCP · CLI /v1</text><text x="600" y="262" fill="#89939c" font-size="15">bank authorization</text></g>
+    <g><rect x="845" y="110" width="240" height="120" rx="18" fill="#0d1012" stroke="#3c454d" stroke-width="2"/><text x="965" y="165" fill="#f4f6f8" font-size="23" font-weight="700">Hindsight</text><text x="965" y="198" fill="#89939c" font-size="15">loopback only</text></g>
+    <g><rect x="845" y="250" width="240" height="90" rx="18" fill="#0d1012" stroke="#3c454d" stroke-width="2"/><text x="965" y="305" fill="#f4f6f8" font-size="22" font-weight="700">PostgreSQL</text></g>
+  </g>
+</svg>

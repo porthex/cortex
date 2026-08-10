@@ -4,6 +4,6 @@
 server:
   # The conformance output contains serverInfo but this alpha still emits a warning.
   - server-stateless:sep-2575-server-identifies-in-result-meta
-  # Corthex has a static product surface; no runtime prompt/tool mutation API exists.
+  # Cortex has a static product surface; no runtime prompt/tool mutation API exists.
   - server-stateless:sep-2575-server-sends-prompts-list-changed-on-subscription
   - server-stateless:sep-2575-server-sends-tools-list-changed-on-subscription

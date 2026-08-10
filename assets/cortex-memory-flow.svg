@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Cortex shared memory flow</title>
+  <desc id="desc">AI clients connect through the authenticated Cortex boundary to a shared Hindsight memory bank.</desc>
+  <defs>
+    <linearGradient id="silver" x1="0" x2="1"><stop stop-color="#89939c"/><stop offset="1" stop-color="#f4f6f8"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#89939c"/></marker>
+  </defs>
+  <rect width="1200" height="360" rx="24" fill="#050607"/>
+  <g fill="none" stroke="#89939c" stroke-width="3" marker-end="url(#arrow)">
+    <path d="M290 180H430"/><path d="M770 180H910"/>
+  </g>
+  <g font-family="Inter,Arial,sans-serif" text-anchor="middle">
+    <g><rect x="70" y="95" width="220" height="170" rx="18" fill="#0d1012" stroke="#3c454d" stroke-width="2"/><text x="180" y="150" fill="#f4f6f8" font-size="24" font-weight="700">AI clients</text><text x="180" y="190" fill="#89939c" font-size="17">Claude · Codex</text><text x="180" y="220" fill="#89939c" font-size="17">ChatGPT · MCP</text></g>
+    <g><rect x="430" y="70" width="340" height="220" rx="22" fill="#0d1012" stroke="url(#silver)" stroke-width="3"/><text x="600" y="135" fill="#f4f6f8" font-size="31" font-weight="700">Cortex</text><text x="600" y="180" fill="#c6ccd1" font-size="18">authenticated memory boundary</text><text x="600" y="225" fill="#89939c" font-size="16">retain · recall · reflect</text></g>
+    <g><rect x="910" y="95" width="220" height="170" rx="18" fill="#0d1012" stroke="#3c454d" stroke-width="2"/><text x="1020" y="150" fill="#f4f6f8" font-size="24" font-weight="700">Hindsight</text><text x="1020" y="190" fill="#89939c" font-size="17">shared durable bank</text><text x="1020" y="220" fill="#89939c" font-size="17">with provenance</text></g>
+  </g>
+</svg>

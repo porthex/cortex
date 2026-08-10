@@ -3,9 +3,9 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "corthex"
+name = "cortex"
 version = "0.1.0"
-description = "Cross-platform client, MCP server, and operator tools for Corthex Remote Brain"
+description = "Cross-platform client, MCP server, and operator tools for Cortex Remote Brain"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -24,14 +24,14 @@ classifiers = [
 test = ["pytest>=9,<10", "pytest-asyncio>=1.4,<2"]
 
 [project.scripts]
-corthex = "corthex.cli:entrypoint"
-corthex-mcp-http = "corthex.mcp_http:main"
-corthex-mcp-stdio = "corthex.mcp_stdio:main"
-corthex-mcp-stdio-hermes = "corthex.mcp_stdio:main_hermes_legacy"
+cortex = "cortex.cli:entrypoint"
+cortex-mcp-http = "cortex.mcp_http:main"
+cortex-mcp-stdio = "cortex.mcp_stdio:main"
+cortex-mcp-stdio-hermes = "cortex.mcp_stdio:main_hermes_legacy"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["corthex*"]
+include = ["cortex*"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

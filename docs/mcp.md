@@ -1,6 +1,6 @@
-# Corthex MCP and private HTTP service
+# Cortex MCP and private HTTP service
 
-Corthex provides a stable memory surface backed by [Hindsight](https://github.com/vectorize-io/hindsight). Hindsight and its database remain private upstream dependencies; clients connect only to Corthex.
+Cortex provides a stable memory surface backed by [Hindsight](https://github.com/vectorize-io/hindsight). Hindsight and its database remain private upstream dependencies; clients connect only to Cortex.
 
 ## Install
 
@@ -13,37 +13,37 @@ The package pins the official Python MCP SDK to `mcp==2.0.0` and implements the 
 ## Required environment
 
 ```text
-CORTHEX_HINDSIGHT_URL=http://127.0.0.1:8888
-CORTHEX_HINDSIGHT_API_KEY=<optional upstream credential>
-CORTHEX_BANKS_JSON={"team":"Shared team memory"}
-CORTHEX_MCP_TOKEN=<random client bearer token>
-CORTHEX_MCP_PUBLIC_URL=http://127.0.0.1:8877/mcp
-CORTHEX_MCP_HOST=127.0.0.1
-CORTHEX_MCP_PORT=8877
+CORTEX_HINDSIGHT_URL=http://127.0.0.1:8888
+CORTEX_HINDSIGHT_API_KEY=<optional upstream credential>
+CORTEX_BANKS_JSON={"team":"Shared team memory"}
+CORTEX_MCP_TOKEN=<random client bearer token>
+CORTEX_MCP_PUBLIC_URL=http://127.0.0.1:8877/mcp
+CORTEX_MCP_HOST=127.0.0.1
+CORTEX_MCP_PORT=8877
 ```
 
-Keep credentials in a service environment or secret manager, never in source control or client URLs. `CORTHEX_BANKS_JSON` is an allow-list; no other Hindsight bank is exposed.
+Keep credentials in a service environment or secret manager, never in source control or client URLs. `CORTEX_BANKS_JSON` is an allow-list; no other Hindsight bank is exposed.
 
 ## Run
 
 Long-running HTTP service:
 
 ```shell
-corthex-mcp-http
+cortex-mcp-http
 ```
 
 The service exposes:
 
 - `POST /mcp`: authenticated, stateless Streamable HTTP MCP.
 - `GET /health`: unauthenticated liveness only; it reveals no account or bank data.
-- authenticated `/v1/status`, `/v1/banks`, and `/v1/memories/{retain,recall,reflect}` routes used by the shipped Corthex CLI. The shorter `/v1/{retain,recall,reflect}` server contract remains available for existing direct clients.
+- authenticated `/v1/status`, `/v1/banks`, and `/v1/memories/{retain,recall,reflect}` routes used by the shipped Cortex CLI. The shorter `/v1/{retain,recall,reflect}` server contract remains available for existing direct clients.
 
-For private remote use, bind the service to loopback behind an SSH tunnel or to a private Tailscale address. Do not expose Hindsight, PostgreSQL, or this static-bearer endpoint to the public internet. The MCP Host allowlist is derived from the absolute `CORTHEX_MCP_PUBLIC_URL`, so a private reverse proxy can present its public hostname while the listener remains on loopback.
+For private remote use, bind the service to loopback behind an SSH tunnel or to a private Tailscale address. Do not expose Hindsight, PostgreSQL, or this static-bearer endpoint to the public internet. The MCP Host allowlist is derived from the absolute `CORTEX_MCP_PUBLIC_URL`, so a private reverse proxy can present its public hostname while the listener remains on loopback.
 
 Windowless stdio adapter:
 
 ```shell
-corthex-mcp-stdio
+cortex-mcp-stdio
 ```
 
 The stdio adapter reads the same Hindsight and bank environment. It writes only newline-delimited MCP messages to stdout and accepts modern MCP `2026-07-28`; the legacy initialize handshake is rejected.
@@ -53,17 +53,17 @@ generic Python SDK client identity. Configure Hermes with the explicit
 compatibility facade instead:
 
 ```shell
-corthex-mcp-stdio-hermes
+cortex-mcp-stdio-hermes
 ```
 
 This separate executable is the bounded legacy exception. It shares the same
-Corthex tools and backend adapter without weakening the modern-only default
+Cortex tools and backend adapter without weakening the modern-only default
 endpoint for every stdio client. Remove it once Hermes negotiates
 `2026-07-28` natively.
 
 ## Client examples
 
-Streamable HTTP clients use URL `/mcp` and send `Authorization: Bearer ***` on every request. Modern stdio clients launch `corthex-mcp-stdio`; current Hermes clients launch `corthex-mcp-stdio-hermes`. Provide credentials through the child environment rather than command-line arguments.
+Streamable HTTP clients use URL `/mcp` and send `Authorization: Bearer ***` on every request. Modern stdio clients launch `cortex-mcp-stdio`; current Hermes clients launch `cortex-mcp-stdio-hermes`. Provide credentials through the child environment rather than command-line arguments.
 
 ## Verification
 
@@ -84,28 +84,28 @@ npx -y @modelcontextprotocol/conformance@0.2.0-alpha.10 server \
   --expected-failures tests/conformance-baseline.yml
 ```
 
-All 27 mandatory checks execute and pass. The test-only HTTP fixture registers the suite's synthetic `test_missing_capability` tool; that diagnostic is not part of the Corthex product surface. The baseline contains only the three accepted SHOULD warnings: one alpha-tool warning where `serverInfo` is present in the result, plus dynamic prompt/tool list-change warnings for Corthex's intentionally static surface.
+All 27 mandatory checks execute and pass. The test-only HTTP fixture registers the suite's synthetic `test_missing_capability` tool; that diagnostic is not part of the Cortex product surface. The baseline contains only the three accepted SHOULD warnings: one alpha-tool warning where `serverInfo` is present in the result, plus dynamic prompt/tool list-change warnings for Cortex's intentionally static surface.
 
 Inspector 2.1.0 defaults ad-hoc connections to the legacy protocol era. Use the checked-in configuration to pin the modern 2026-07-28 era; this causes Inspector to perform `server/discover` and send the required per-request metadata and mirror headers:
 
 ```shell
 npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
-  --config tests/inspector-modern.json --server corthex-http \
+  --config tests/inspector-modern.json --server cortex-http \
   --method tools/list --format json
 npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
-  --config tests/inspector-modern.json --server corthex-http \
-  --method tools/call --tool-name corthex_banks --tool-args-json '{}' --format json
+  --config tests/inspector-modern.json --server cortex-http \
+  --method tools/call --tool-name cortex_banks --tool-args-json '{}' --format json
 npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
-  --config tests/inspector-modern.json --server corthex-stdio \
+  --config tests/inspector-modern.json --server cortex-stdio \
   --method tools/list --format json
 npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
-  --config tests/inspector-modern.json --server corthex-stdio \
-  --method tools/call --tool-name corthex_banks --tool-args-json '{}' --format json
+  --config tests/inspector-modern.json --server cortex-stdio \
+  --method tools/call --tool-name cortex_banks --tool-args-json '{}' --format json
 ```
 
 ## Rollback
 
-1. Stop the `corthex-mcp-http` service and remove client references to `/mcp` or `corthex-mcp-stdio`.
-2. Reinstall the previous Corthex release or commit.
+1. Stop the `cortex-mcp-http` service and remove client references to `/mcp` or `cortex-mcp-stdio`.
+2. Reinstall the previous Cortex release or commit.
 3. Leave Hindsight and its database untouched; this package does not migrate or delete banks.
-4. Restore the previous service environment. Rotate `CORTHEX_MCP_TOKEN` if it was exposed during rollback.
+4. Restore the previous service environment. Rotate `CORTEX_MCP_TOKEN` if it was exposed during rollback.

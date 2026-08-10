@@ -86,7 +86,7 @@
       "id": "http-name-header-mismatch",
       "required": true,
       "transport": "streamable-http",
-      "request": {"method": "tools/call", "header": {"Mcp-Name": "wrong"}, "body_name": "corthex_recall"},
+      "request": {"method": "tools/call", "header": {"Mcp-Name": "wrong"}, "body_name": "cortex_recall"},
       "expected": {"http_status": 400, "jsonrpc_error": -32020},
       "prevents": "Intermediary/application target confusion."
     },

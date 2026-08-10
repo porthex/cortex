@@ -1,6 +1,6 @@
 """Explicit legacy stdio fixture used only for Hermes compatibility tests."""
 
-from corthex.mcp_stdio import run_hermes_legacy_stdio
+from cortex.mcp_stdio import run_hermes_legacy_stdio
 from tests.stdio_fixture import server
 
 

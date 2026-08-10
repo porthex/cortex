@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from corthex.contracts import RecallItem, RecallResult, ReflectResult, RetainResult
-from corthex.mcp_http import build_http_app
+from cortex.contracts import RecallItem, RecallResult, ReflectResult, RetainResult
+from cortex.mcp_http import build_http_app
 from mcp.server.mcpserver import Context
 from mcp.shared.exceptions import MCPError
 

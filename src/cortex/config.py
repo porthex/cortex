@@ -30,7 +30,7 @@ def validate_config(config: Config) -> Config:
     except ValueError:
         pass
     if parsed.scheme != "https" and not is_loopback:
-        raise ValueError("non-loopback Corthex URLs must use HTTPS")
+        raise ValueError("non-loopback Cortex URLs must use HTTPS")
     if not config.bank.strip() or not math.isfinite(config.timeout) or config.timeout <= 0:
         raise ValueError("bank must be non-empty and timeout must be positive")
     return config
@@ -38,16 +38,16 @@ def validate_config(config: Config) -> Config:
 
 def config_path(environ: Mapping[str, str] | None = None) -> Path:
     env = os.environ if environ is None else environ
-    explicit = env.get("CORTHEX_CONFIG")
+    explicit = env.get("CORTEX_CONFIG")
     if explicit:
         return Path(explicit).expanduser()
     if sys.platform == "win32":
         root = Path(env.get("APPDATA", Path.home() / "AppData" / "Roaming"))
-        return root / "Corthex" / "config.json"
+        return root / "Cortex" / "config.json"
     if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "Corthex" / "config.json"
+        return Path.home() / "Library" / "Application Support" / "Cortex" / "config.json"
     root = Path(env.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return root / "corthex" / "config.json"
+    return root / "cortex" / "config.json"
 
 
 def save_config(config: Config, path: Path) -> None:
@@ -68,7 +68,7 @@ def load_config(path: Path) -> Config:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise ValueError(f"Corthex is not configured; run 'corthex configure' ({path})") from exc
+        raise ValueError(f"Cortex is not configured; run 'cortex configure' ({path})") from exc
     if not isinstance(raw, dict):
         raise ValueError("configuration must be a JSON object")
     try:

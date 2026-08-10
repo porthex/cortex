@@ -1,6 +1,6 @@
 # Security policy
 
-Corthex handles durable AI memory and should be treated as a sensitive data system.
+Cortex handles durable AI memory and should be treated as a sensitive data system.
 
 ## Reporting a vulnerability
 
@@ -16,7 +16,7 @@ Do not include real credentials, private memories, database dumps, or personal d
 
 ## Supported versions
 
-Corthex is currently pre-release. Security fixes are applied to the latest revision of `main`; no stable version support window has been announced.
+Cortex is currently pre-release. Security fixes are applied to the latest revision of `main`; no stable version support window has been announced.
 
 ## Deployment baseline
 

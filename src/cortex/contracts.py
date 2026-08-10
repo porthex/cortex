@@ -1,4 +1,4 @@
-"""Stable public Corthex memory contracts."""
+"""Stable public Cortex memory contracts."""
 
 from __future__ import annotations
 

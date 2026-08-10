@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from corthex.hindsight_adapter import HindsightMemoryBackend
+from cortex.hindsight_adapter import HindsightMemoryBackend
 
 
 class FakeHindsightClient:
@@ -51,7 +51,7 @@ async def test_adapter_maps_retain_without_leaking_hindsight_types() -> None:
 
 
 @pytest.mark.asyncio
-async def test_adapter_maps_recall_to_stable_corthex_result() -> None:
+async def test_adapter_maps_recall_to_stable_cortex_result() -> None:
     client = FakeHindsightClient()
     backend = HindsightMemoryBackend(client=client)
 
@@ -70,7 +70,7 @@ async def test_adapter_maps_recall_to_stable_corthex_result() -> None:
 
 
 @pytest.mark.asyncio
-async def test_adapter_maps_reflect_to_stable_corthex_result() -> None:
+async def test_adapter_maps_reflect_to_stable_cortex_result() -> None:
     client = FakeHindsightClient()
     backend = HindsightMemoryBackend(client=client)
 

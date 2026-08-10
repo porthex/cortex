@@ -7,7 +7,7 @@ import sys
 from dataclasses import asdict
 from typing import Mapping, Sequence, TextIO
 
-from .client import Client, CorthexError
+from .client import Client, CortexError
 from .config import Config, config_path, load_config, save_config
 
 
@@ -21,7 +21,7 @@ class CliArgumentParser(argparse.ArgumentParser):
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = CliArgumentParser(prog="corthex", description="Corthex Remote Brain client")
+    parser = CliArgumentParser(prog="cortex", description="Cortex Remote Brain client")
     parser.add_argument("--json", action="store_true", dest="json_output")
     subcommands = parser.add_subparsers(dest="command", required=True)
     configure = subcommands.add_parser("configure", help="save a connection profile")
@@ -92,10 +92,10 @@ def main(
             if args.json_output:
                 _success("configure", data, True, out)
             else:
-                out.write(f"Configured Corthex bank {config.bank} at {config.url}\n")
+                out.write(f"Configured Cortex bank {config.bank} at {config.url}\n")
             return 0
         config = load_config(config_path(env))
-        token = env.get("CORTHEX_TOKEN", "")
+        token = env.get("CORTEX_TOKEN", "")
         if args.command == "connect" and args.token_stdin:
             token = input_stream.readline().rstrip("\r\n")
         client = Client(config, token)
@@ -149,7 +149,7 @@ def main(
         else:
             err.write(f"error: {exc}\n")
         return 2
-    except CorthexError as exc:
+    except CortexError as exc:
         if "args" in locals() and getattr(args, "json_output", False):
             _emit(
                 {

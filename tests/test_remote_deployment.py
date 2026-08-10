@@ -20,20 +20,20 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         return (ROOT / relative).read_text(encoding="utf-8")
 
     def test_systemd_unit_is_loopback_only_and_least_privilege(self) -> None:
-        unit = self.read("deploy/corthex-remote.service")
-        self.assertIn("User=corthex", unit)
-        self.assertIn("Group=corthex", unit)
-        self.assertIn("EnvironmentFile=/etc/corthex/corthex.env", unit)
+        unit = self.read("deploy/cortex-remote.service")
+        self.assertIn("User=cortex", unit)
+        self.assertIn("Group=cortex", unit)
+        self.assertIn("EnvironmentFile=/etc/cortex/cortex.env", unit)
         self.assertIn(
-            "ExecStart=/opt/corthex/.venv/bin/corthex-mcp-http",
+            "ExecStart=/opt/cortex/.venv/bin/cortex-mcp-http",
             unit,
         )
-        self.assertNotIn("corthex serve", unit)
+        self.assertNotIn("cortex serve", unit)
         self.assertIn("NoNewPrivileges=true", unit)
         self.assertIn("ProtectSystem=strict", unit)
         self.assertIn("ProtectHome=true", unit)
         self.assertIn("PrivateTmp=true", unit)
-        self.assertIn("ReadWritePaths=/var/lib/corthex /var/log/corthex", unit)
+        self.assertIn("ReadWritePaths=/var/lib/cortex /var/log/cortex", unit)
 
     def test_funnel_detector_rejects_real_map_shape(self) -> None:
         checker = ROOT / "deploy/check-serve-private.py"
@@ -49,29 +49,29 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertEqual(0, private.returncode)
         self.assertNotEqual(0, public.returncode)
 
-    def test_serve_checker_rejects_existing_corthex_path(self) -> None:
+    def test_serve_checker_rejects_existing_cortex_path(self) -> None:
         checker = ROOT / "deploy/check-serve-private.py"
         collision = subprocess.run(
             ["python3", str(checker)],
-            input='{"Web":{"host:443":{"Handlers":{"/corthex":{"Proxy":"http://127.0.0.1:1"}}}}}',
+            input='{"Web":{"host:443":{"Handlers":{"/cortex":{"Proxy":"http://127.0.0.1:1"}}}}}',
             text=True,
             capture_output=True,
         )
         self.assertNotEqual(0, collision.returncode)
-        self.assertIn("/corthex", collision.stderr)
+        self.assertIn("/cortex", collision.stderr)
 
-    def test_serve_checker_allows_only_the_existing_corthex_target_on_upgrade(self) -> None:
+    def test_serve_checker_allows_only_the_existing_cortex_target_on_upgrade(self) -> None:
         checker = ROOT / "deploy/check-serve-private.py"
-        owned = '{"Web":{"host:443":{"Handlers":{"/corthex":{"Proxy":"http://127.0.0.1:8890"}}}}}'
-        other = '{"Web":{"host:443":{"Handlers":{"/corthex":{"Proxy":"http://127.0.0.1:9999"}}}}}'
+        owned = '{"Web":{"host:443":{"Handlers":{"/cortex":{"Proxy":"http://127.0.0.1:8890"}}}}}'
+        other = '{"Web":{"host:443":{"Handlers":{"/cortex":{"Proxy":"http://127.0.0.1:9999"}}}}}'
         accepted = subprocess.run(
-            ["python3", str(checker), "--allow-owned-corthex"],
+            ["python3", str(checker), "--allow-owned-cortex"],
             input=owned,
             text=True,
             capture_output=True,
         )
         rejected = subprocess.run(
-            ["python3", str(checker), "--allow-owned-corthex"],
+            ["python3", str(checker), "--allow-owned-cortex"],
             input=other,
             text=True,
             capture_output=True,
@@ -94,7 +94,7 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         with socketserver.TCPServer(("127.0.0.1", 0), Handler) as server:
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
-            env = dict(os.environ, CORTHEX_MCP_TOKEN=token)
+            env = dict(os.environ, CORTEX_MCP_TOKEN=token)
             checked = subprocess.run(
                 [
                     "python3",
@@ -116,41 +116,56 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertNotIn('grep -q \'"AllowFunnel"', script)
         self.assertIn("existing_token", script)
         self.assertIn(".venv.next", script)
-        self.assertIn("systemctl restart corthex-remote.service", script)
+        self.assertIn("systemctl restart cortex-remote.service", script)
         self.assertIn("check-local-auth.py", script)
         self.assertNotIn("Authorization: Bearer", script)
         self.assertRegex(
             script,
-            r"tailscale serve --bg --yes --set-path /corthex http://127\.0\.0\.1:8890",
+            r"tailscale serve --bg --yes --set-path /cortex http://127\.0\.0\.1:8890",
         )
         self.assertIn("install -m 0600", script)
-        self.assertIn("systemctl enable corthex-remote.service", script)
-        self.assertIn("systemctl restart corthex-remote.service", script)
+        self.assertIn("systemctl enable cortex-remote.service", script)
+        self.assertIn("systemctl restart cortex-remote.service", script)
+
+    def test_installer_fails_closed_before_mutating_a_legacy_corthex_deployment(self) -> None:
+        """Narrow compatibility guard for hosts installed before the rename."""
+        script = self.read("deploy/install-vps.sh")
+        markers = (
+            "/etc/corthex/corthex.env",
+            "/opt/corthex/.venv",
+            "corthex-remote.service",
+            "/var/lib/corthex",
+        )
+        for marker in markers:
+            self.assertIn(marker, script)
+        guard = script.index("Legacy Corthex deployment detected")
+        self.assertLess(guard, script.index("getent group cortex"))
+        self.assertIn("docs/RENAME_UPGRADE.md", script)
 
     def test_installer_writes_mcp_runtime_environment_contract(self) -> None:
         script = self.read("deploy/install-vps.sh")
         for expected in (
-            "/opt/corthex/.venv.next/bin/python -c 'import corthex.mcp_http'",
-            "CORTHEX_MCP_TOKEN",
-            "CORTHEX_BANKS_JSON",
-            "CORTHEX_MCP_PUBLIC_URL",
-            "CORTHEX_MCP_HOST=127.0.0.1",
-            "CORTHEX_MCP_PORT=8890",
+            "/opt/cortex/.venv.next/bin/python -c 'import cortex.mcp_http'",
+            "CORTEX_MCP_TOKEN",
+            "CORTEX_BANKS_JSON",
+            "CORTEX_MCP_PUBLIC_URL",
+            "CORTEX_MCP_HOST=127.0.0.1",
+            "CORTEX_MCP_PORT=8890",
         ):
             self.assertIn(expected, script)
-        self.assertNotIn("CORTHEX_ALLOWED_BANKS", script)
-        self.assertNotIn("CORTHEX_TOKEN=", script)
-        self.assertNotIn("corthex-mcp-http --help", script)
-        self.assertIn("/etc/corthex/backup.env", script)
-        unit = self.read("deploy/corthex-remote.service")
+        self.assertNotIn("CORTEX_ALLOWED_BANKS", script)
+        self.assertNotIn("CORTEX_TOKEN=", script)
+        self.assertNotIn("cortex-mcp-http --help", script)
+        self.assertIn("/etc/cortex/backup.env", script)
+        unit = self.read("deploy/cortex-remote.service")
         self.assertNotIn("backup.env", unit)
 
     def test_installer_does_not_relocate_a_virtualenv_after_entrypoints_are_written(self) -> None:
         script = self.read("deploy/install-vps.sh")
-        self.assertIn("/opt/corthex/releases", script)
+        self.assertIn("/opt/cortex/releases", script)
         self.assertIn("ln -s", script)
-        self.assertNotIn("python3 -m venv /opt/corthex/.venv.next", script)
-        self.assertNotIn("mv /opt/corthex/.venv.next /opt/corthex/.venv", script)
+        self.assertNotIn("python3 -m venv /opt/cortex/.venv.next", script)
+        self.assertNotIn("mv /opt/cortex/.venv.next /opt/cortex/.venv", script)
         self.assertLess(
             script.index("trap 'cleanup_release' EXIT"),
             script.index('python3 -m venv "$NEW_RELEASE"'),
@@ -160,22 +175,22 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         script = self.read("deploy/install-vps.sh")
         self.assertIn("rollback_install", script)
         self.assertIn("trap 'rollback_install", script)
-        self.assertIn("corthex.env.previous", script)
-        self.assertIn("corthex-remote.service.previous", script)
+        self.assertIn("cortex.env.previous", script)
+        self.assertIn("cortex-remote.service.previous", script)
         self.assertIn("WAS_ACTIVE", script)
-        self.assertIn("systemctl is-active --quiet corthex-remote.service", script)
+        self.assertIn("systemctl is-active --quiet cortex-remote.service", script)
 
     def test_installer_serializes_and_rechecks_serve_path_before_claiming_it(self) -> None:
         script = self.read("deploy/install-vps.sh")
         self.assertIn("flock 9", script)
         self.assertGreaterEqual(script.count("tailscale serve status --json"), 2)
-        self.assertGreaterEqual(script.count("--allow-owned-corthex"), 2)
-        self.assertNotIn("tailscale serve --yes --https=443 --set-path /corthex off", script)
+        self.assertGreaterEqual(script.count("--allow-owned-cortex"), 2)
+        self.assertNotIn("tailscale serve --yes --https=443 --set-path /cortex off", script)
 
     def test_local_auth_checker_uses_mcp_token_environment_name(self) -> None:
         checker = self.read("deploy/check-local-auth.py")
-        self.assertIn("CORTHEX_MCP_TOKEN", checker)
-        self.assertNotIn('os.environ["CORTHEX_TOKEN"]', checker)
+        self.assertIn("CORTEX_MCP_TOKEN", checker)
+        self.assertNotIn('os.environ["CORTEX_TOKEN"]', checker)
 
     def test_backup_and_restore_use_native_postgres_tools_without_leaking_url(self) -> None:
         backup = self.read("deploy/backup.sh")
@@ -215,7 +230,7 @@ class RemoteDeploymentContractTests(unittest.TestCase):
                 ],
                 env={
                     **os.environ,
-                    "CORTHEX_BACKUP_ENV_FILE": str(root / "missing.env"),
+                    "CORTEX_BACKUP_ENV_FILE": str(root / "missing.env"),
                     "PG_RESTORE": "/bin/true",
                     "PSQL": "/bin/true",
                 },
@@ -263,15 +278,15 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         ):
             self.assertIn(heading, doc)
         for contract in (
-            "corthex-mcp-http",
-            "CORTHEX_BANKS_JSON",
-            "CORTHEX_MCP_TOKEN",
-            "/corthex/mcp",
-            "/corthex/v1/status",
+            "cortex-mcp-http",
+            "CORTEX_BANKS_JSON",
+            "CORTEX_MCP_TOKEN",
+            "/cortex/mcp",
+            "/cortex/v1/status",
         ):
             self.assertIn(contract, doc)
-        self.assertNotIn("CORTHEX_ALLOWED_BANKS", doc)
-        self.assertNotIn("`corthex serve`", doc)
+        self.assertNotIn("CORTEX_ALLOWED_BANKS", doc)
+        self.assertNotIn("`cortex serve`", doc)
         self.assertNotRegex(doc, r"(?:100\.\d+\.\d+\.\d+|tailaf[0-9a-f]+)")
 
 

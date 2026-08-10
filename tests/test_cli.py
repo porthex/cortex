@@ -4,14 +4,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from corthex.cli import main
+from cortex.cli import main
 from tests.fake_gateway import IsolatedGateway
 
 
 class ConfigureCommandTests(unittest.TestCase):
     def test_configure_writes_non_secret_config_and_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            config_path = Path(directory) / "corthex" / "config.json"
+            config_path = Path(directory) / "cortex" / "config.json"
             stdout = io.StringIO()
             stderr = io.StringIO()
 
@@ -27,8 +27,8 @@ class ConfigureCommandTests(unittest.TestCase):
                     "12.5",
                 ],
                 environ={
-                    "CORTHEX_CONFIG": str(config_path),
-                    "CORTHEX_TOKEN": "must-not-be-persisted",
+                    "CORTEX_CONFIG": str(config_path),
+                    "CORTEX_TOKEN": "must-not-be-persisted",
                 },
                 stdout=stdout,
                 stderr=stderr,
@@ -66,8 +66,8 @@ class StatusCommandTests(unittest.TestCase):
             code = main(
                 ["--json", "status"],
                 environ={
-                    "CORTHEX_CONFIG": str(config_path),
-                    "CORTHEX_TOKEN": gateway.token,
+                    "CORTEX_CONFIG": str(config_path),
+                    "CORTEX_TOKEN": gateway.token,
                 },
                 stdout=stdout,
                 stderr=stderr,
@@ -88,7 +88,7 @@ class MemoryCommandTests(unittest.TestCase):
         stdout = io.StringIO()
         code = main(
             ["--json", *arguments],
-            environ={"CORTHEX_CONFIG": str(config_path), "CORTHEX_TOKEN": gateway.token},
+            environ={"CORTEX_CONFIG": str(config_path), "CORTEX_TOKEN": gateway.token},
             stdout=stdout,
             stderr=io.StringIO(),
         )
@@ -142,8 +142,8 @@ class FailureContractTests(unittest.TestCase):
                 encoding="utf-8",
             )
             environment = {
-                "CORTHEX_CONFIG": str(config_path),
-                "CORTHEX_TOKEN": gateway.token,
+                "CORTEX_CONFIG": str(config_path),
+                "CORTEX_TOKEN": gateway.token,
             }
 
             for status_code, body in malformed_responses:
@@ -169,7 +169,7 @@ class FailureContractTests(unittest.TestCase):
                             "data": None,
                             "error": {
                                 "code": "invalid_response",
-                                "message": "Corthex returned an invalid response",
+                                "message": "Cortex returned an invalid response",
                                 "retryable": False,
                             },
                         },
@@ -204,7 +204,7 @@ class FailureContractTests(unittest.TestCase):
                 wrong_token = "wrong-secret-token"
                 code = main(
                     ["--json", "status"],
-                    environ={"CORTHEX_CONFIG": str(config_path), "CORTHEX_TOKEN": wrong_token},
+                    environ={"CORTEX_CONFIG": str(config_path), "CORTEX_TOKEN": wrong_token},
                     stdout=stdout,
                     stderr=io.StringIO(),
                 )
@@ -215,7 +215,7 @@ class FailureContractTests(unittest.TestCase):
             disconnected_output = io.StringIO()
             code = main(
                 ["--json", "status"],
-                environ={"CORTHEX_CONFIG": str(config_path), "CORTHEX_TOKEN": "still-secret"},
+                environ={"CORTEX_CONFIG": str(config_path), "CORTEX_TOKEN": "still-secret"},
                 stdout=disconnected_output,
                 stderr=io.StringIO(),
             )
@@ -228,7 +228,7 @@ class FailureContractTests(unittest.TestCase):
             output = io.StringIO()
             code = main(
                 ["--json", "configure", "--url", "http://brain.example.test", "--bank", "x"],
-                environ={"CORTHEX_CONFIG": str(Path(directory) / "config.json")},
+                environ={"CORTEX_CONFIG": str(Path(directory) / "config.json")},
                 stdout=output,
                 stderr=io.StringIO(),
             )
@@ -240,7 +240,7 @@ class FailureContractTests(unittest.TestCase):
             output = io.StringIO()
             code = main(
                 ["--json", "configure", "--url", "https://brain.example.test", "--bank", "x", "--timeout", "nan"],
-                environ={"CORTHEX_CONFIG": str(Path(directory) / "config.json")},
+                environ={"CORTEX_CONFIG": str(Path(directory) / "config.json")},
                 stdout=output,
                 stderr=io.StringIO(),
             )
@@ -256,7 +256,7 @@ class FailureContractTests(unittest.TestCase):
             output = io.StringIO()
             code = main(
                 ["--json", "retain", "fact", "--bank", ""],
-                environ={"CORTHEX_CONFIG": str(config_path), "CORTHEX_TOKEN": gateway.token},
+                environ={"CORTEX_CONFIG": str(config_path), "CORTEX_TOKEN": gateway.token},
                 stdout=output,
                 stderr=io.StringIO(),
             )
@@ -275,7 +275,7 @@ class ConnectionCommandTests(unittest.TestCase):
             stdout = io.StringIO()
             code = main(
                 ["--json", "connect", "--token-stdin"],
-                environ={"CORTHEX_CONFIG": str(config_path)},
+                environ={"CORTEX_CONFIG": str(config_path)},
                 stdin=io.StringIO(gateway.token + "\n"),
                 stdout=stdout,
                 stderr=io.StringIO(),
@@ -295,7 +295,7 @@ class ConnectionCommandTests(unittest.TestCase):
             stdout = io.StringIO()
             code = main(
                 ["--json", "doctor"],
-                environ={"CORTHEX_CONFIG": str(config_path), "CORTHEX_TOKEN": gateway.token},
+                environ={"CORTEX_CONFIG": str(config_path), "CORTEX_TOKEN": gateway.token},
                 stdout=stdout,
                 stderr=io.StringIO(),
             )
@@ -312,7 +312,7 @@ class OperatorCommandTests(unittest.TestCase):
                 json.dumps({"url": gateway.url, "bank": "isolated", "timeout": 2}),
                 encoding="utf-8",
             )
-            environment = {"CORTHEX_CONFIG": str(config_path), "CORTHEX_TOKEN": gateway.token}
+            environment = {"CORTEX_CONFIG": str(config_path), "CORTEX_TOKEN": gateway.token}
             started = io.StringIO()
             stopped = io.StringIO()
 
