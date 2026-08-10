@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Corthex by Porthex</title>
+  <desc id="desc">A focused intelligence signal emerging from two offset silver field planes.</desc>
+  <rect width="1024" height="1024" fill="#050607"/>
+  <g>
+    <path fill="#8B969F" d="M292 338L428 202V626L292 762Q270 740 270 702V416Q270 378 292 338Z"/>
+    <path fill="#3C454D" d="M612 262L730 380Q754 404 754 444V622Q754 662 730 686L612 804V262Z"/>
+    <path fill="#F4F6F8" d="M476 194L560 110V684Q560 716 540 740L476 812V194Z"/>
+    <circle cx="318" cy="806" r="42" fill="#F4F6F8"/>
+  </g>
+</svg>
