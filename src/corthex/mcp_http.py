@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 import json
 from typing import Any, cast
+from urllib.parse import urlsplit
 
 import uvicorn
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .auth import StaticTokenVerifier
 from .contracts import MemoryBackend, RecallResult, ReflectResult, RetainResult
@@ -320,9 +322,28 @@ def build_http_app(
     allowed_banks: Mapping[str, str],
     token: str,
     host: str = "127.0.0.1",
+    public_url: str | None = None,
 ) -> AuthenticatedMcpApp:
     server = create_mcp_server(backend, allowed_banks=allowed_banks)
-    inner = server.streamable_http_app(stateless_http=True, host=host)
+    transport_security = None
+    if public_url:
+        parsed = urlsplit(public_url)
+        public_hostname = parsed.hostname or ""
+        if ":" in public_hostname:
+            public_hostname = f"[{public_hostname}]"
+        authority = public_hostname
+        if parsed.port is not None:
+            authority = f"{authority}:{parsed.port}"
+        transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=[authority],
+            allowed_origins=[f"{parsed.scheme}://{authority}"],
+        )
+    inner = server.streamable_http_app(
+        stateless_http=True,
+        host=host,
+        transport_security=transport_security,
+    )
     return AuthenticatedMcpApp(inner, server, StaticTokenVerifier(token), backend, allowed_banks)
 
 
@@ -337,6 +358,7 @@ def main() -> None:
         allowed_banks=config.banks,
         token=config.mcp_token or "",
         host=config.host,
+        public_url=config.public_url,
     )
     uvicorn.run(app, host=config.host, port=config.port, log_level="info")
 

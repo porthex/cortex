@@ -50,6 +50,14 @@ class RuntimeConfig:
                 raise ValueError("CORTHEX_MCP_TOKEN is required for Streamable HTTP")
             if not public_url:
                 raise ValueError("CORTHEX_MCP_PUBLIC_URL is required for Streamable HTTP")
+            parsed_public = urlsplit(public_url)
+            if (
+                parsed_public.scheme not in {"http", "https"}
+                or not parsed_public.hostname
+                or parsed_public.username is not None
+                or parsed_public.password is not None
+            ):
+                raise ValueError("CORTHEX_MCP_PUBLIC_URL must be an absolute HTTP(S) URL without userinfo")
 
         host = values.get("CORTHEX_MCP_HOST", "127.0.0.1")
         try:

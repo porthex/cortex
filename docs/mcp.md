@@ -38,7 +38,7 @@ The service exposes:
 - `GET /health`: unauthenticated liveness only; it reveals no account or bank data.
 - authenticated `/v1/status`, `/v1/banks`, and `/v1/memories/{retain,recall,reflect}` routes used by the shipped Corthex CLI. The shorter `/v1/{retain,recall,reflect}` server contract remains available for existing direct clients.
 
-For private remote use, bind the service to loopback behind an SSH tunnel or to a private Tailscale address. Do not expose Hindsight, PostgreSQL, or this static-bearer endpoint to the public internet.
+For private remote use, bind the service to loopback behind an SSH tunnel or to a private Tailscale address. Do not expose Hindsight, PostgreSQL, or this static-bearer endpoint to the public internet. The MCP Host allowlist is derived from the absolute `CORTHEX_MCP_PUBLIC_URL`, so a private reverse proxy can present its public hostname while the listener remains on loopback.
 
 Windowless stdio adapter:
 

@@ -230,6 +230,69 @@ async def test_streamable_http_requires_bearer_and_discovers_tools() -> None:
 
 
 @pytest.mark.asyncio
+async def test_streamable_http_accepts_the_configured_public_proxy_host() -> None:
+    app = build_http_app(
+        IsolatedMemory(),
+        allowed_banks={"test-bank": "Isolated"},
+        token="test-token",
+        host="127.0.0.1",
+        public_url="https://brain.example.ts.net/corthex/mcp",
+    )
+    transport = httpx2.ASGITransport(app=app)
+    async with app.server.session_manager.run():
+        async with httpx2.AsyncClient(
+            transport=transport,
+            base_url="https://brain.example.ts.net",
+            headers={"Authorization": "Bearer test-token"},
+        ) as client:
+            response = await client.post(
+                "/mcp",
+                json={
+                    "jsonrpc": "2.0",
+                    "id": "public-proxy",
+                    "method": "tools/list",
+                    "params": {
+                        "_meta": {
+                            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                            "io.modelcontextprotocol/clientCapabilities": {},
+                        }
+                    },
+                },
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "MCP-Protocol-Version": "2026-07-28",
+                    "Mcp-Method": "tools/list",
+                },
+            )
+        async with httpx2.AsyncClient(
+            transport=transport,
+            base_url="https://evil.example",
+            headers={"Authorization": "Bearer test-token"},
+        ) as evil_host_client:
+            evil_host = await evil_host_client.post(
+                "/mcp",
+                json={
+                    "jsonrpc": "2.0",
+                    "id": "evil-host",
+                    "method": "tools/list",
+                    "params": {
+                        "_meta": {
+                            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                            "io.modelcontextprotocol/clientCapabilities": {},
+                        }
+                    },
+                },
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "MCP-Protocol-Version": "2026-07-28",
+                    "Mcp-Method": "tools/list",
+                },
+            )
+    assert response.status_code == 200, response.text
+    assert evil_host.status_code == 421
+
+
+@pytest.mark.asyncio
 async def test_http_app_hosts_health_and_v1_memory_facade() -> None:
     app = build_http_app(
         IsolatedMemory(),
