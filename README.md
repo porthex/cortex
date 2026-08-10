@@ -1,6 +1,8 @@
 # Corthex
 
-Corthex is a shared-memory product for AI clients, powered by [Hindsight](https://github.com/vectorize-io/hindsight). This repository contains the existing Windows Cortex Brain baseline and the cross-platform Corthex client being generalized from it.
+Corthex is a shared-memory product for AI clients, powered by [Hindsight](https://github.com/vectorize-io/hindsight), the underlying Apache-2.0 semantic-memory engine. This repository contains the existing Windows Cortex Brain baseline and the cross-platform Corthex client being generalized from it.
+
+For the authoritative private-memory architecture, deterministic migration, backup gates, Hermes cutover, verification, and rollback, see [Unified Corthex memory architecture](docs/UNIFIED_MEMORY.md). The legacy `cortex` and `hermes` banks remain preserved migration sources.
 
 ## Cross-platform CLI
 
