@@ -1,4 +1,7 @@
 import importlib
+import re
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -39,6 +42,56 @@ class ProductIdentityTests(unittest.TestCase):
 
         self.assertEqual(residual_paths, [])
         self.assertEqual(residual_text, [])
+
+    def test_cortex_package_metadata_does_not_claim_an_undecided_license(self):
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        project_section = pyproject.split("[project]", 1)[1].split("\n[", 1)[0]
+        licensing_status = (ROOT / "LICENSES.md").read_text(encoding="utf-8")
+
+        self.assertIsNone(re.search(r"(?m)^\s*license\s*=", project_section))
+        self.assertIn("Cortex does not currently include a project license.", licensing_status)
+        self.assertIn("Hindsight", licensing_status)
+        self.assertIn("MIT License", licensing_status)
+
+    def test_repository_hygiene_rejects_license_metadata_while_status_is_undecided(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / "scripts").mkdir()
+            (root / "scripts" / "check-repository.sh").write_bytes(
+                (ROOT / "scripts" / "check-repository.sh").read_bytes()
+            )
+            (root / "pyproject.toml").write_text(
+                '[project]\nname = "cortex"\nversion = "0.1.0"\nlicense = "MIT"\n',
+                encoding="utf-8",
+            )
+            (root / "LICENSES.md").write_text(
+                "Cortex does not currently include a project license.\n",
+                encoding="utf-8",
+            )
+            for relative in (
+                "README.md",
+                "CONTRIBUTING.md",
+                "SECURITY.md",
+                "THIRD_PARTY_NOTICES.md",
+                "docs/architecture.md",
+                "docs/configuration.md",
+                "config/cortex.example.yaml",
+            ):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("", encoding="utf-8")
+            subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+
+            result = subprocess.run(
+                ["bash", "./scripts/check-repository.sh"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("package metadata declares a Cortex license while LICENSES.md says it is undecided", result.stderr)
 
     def test_cortex_package_and_documentation_assets_exist(self):
         self.assertIsNotNone(importlib.import_module("cortex"))

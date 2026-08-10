@@ -8,7 +8,6 @@ version = "0.1.0"
 description = "Cross-platform client, MCP server, and operator tools for Cortex Remote Brain"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
 authors = [{name = "Porthex"}]
 dependencies = [
   "hindsight-client>=0.9,<1",
