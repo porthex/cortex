@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from corthex.contracts import RecallItem, RecallResult, ReflectResult, RetainResult
 from corthex.mcp_http import build_http_app
+from mcp.server.mcpserver import Context
+from mcp.shared.exceptions import MCPError
 
 
 class FixtureMemory:
@@ -33,3 +35,18 @@ app = build_http_app(
     token="test-token",
     host="127.0.0.1",
 )
+
+
+@app.server.tool(
+    name="test_missing_capability",
+    description="Conformance-only diagnostic requiring the client's sampling capability.",
+)
+async def test_missing_capability(ctx: Context) -> dict[str, bool]:
+    capabilities = ctx.client_capabilities
+    if capabilities is None or capabilities.sampling is None:
+        raise MCPError(
+            code=-32021,
+            message="Missing required client capability",
+            data={"requiredCapabilities": {"sampling": {}}},
+        )
+    return {"accepted": True}

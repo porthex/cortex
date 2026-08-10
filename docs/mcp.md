@@ -84,7 +84,24 @@ npx -y @modelcontextprotocol/conformance@0.2.0-alpha.10 server \
   --expected-failures tests/conformance-baseline.yml
 ```
 
-The narrow baseline covers only diagnostics that require the conformance suite's synthetic sampling tool, one alpha-tool false warning where `serverInfo` is present in the result, and dynamic list-change warnings for Corthex's intentionally static surface. Any other regression fails the command.
+All 27 mandatory checks execute and pass. The test-only HTTP fixture registers the suite's synthetic `test_missing_capability` tool; that diagnostic is not part of the Corthex product surface. The baseline contains only the three accepted SHOULD warnings: one alpha-tool warning where `serverInfo` is present in the result, plus dynamic prompt/tool list-change warnings for Corthex's intentionally static surface.
+
+Inspector 2.1.0 defaults ad-hoc connections to the legacy protocol era. Use the checked-in configuration to pin the modern 2026-07-28 era; this causes Inspector to perform `server/discover` and send the required per-request metadata and mirror headers:
+
+```shell
+npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
+  --config tests/inspector-modern.json --server corthex-http \
+  --method tools/list --format json
+npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
+  --config tests/inspector-modern.json --server corthex-http \
+  --method tools/call --tool-name corthex_banks --tool-args-json '{}' --format json
+npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
+  --config tests/inspector-modern.json --server corthex-stdio \
+  --method tools/list --format json
+npx -y @modelcontextprotocol/inspector@2.1.0 --cli \
+  --config tests/inspector-modern.json --server corthex-stdio \
+  --method tools/call --tool-name corthex_banks --tool-args-json '{}' --format json
+```
 
 ## Rollback
 

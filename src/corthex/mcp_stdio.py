@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import anyio
+from mcp.server.mcpserver import MCPServer
 from mcp.server.runner import _serve_modern_stream
 from mcp.server.stdio import stdio_server
 
@@ -62,10 +63,10 @@ def run_hermes_legacy_stdio(server: MCPServer) -> None:
 
 
 def main_hermes_legacy() -> None:
-    config = RuntimeConfig.from_env(os.environ)
-    backend = HindsightMemoryBackend.from_url(
-        config.hindsight_url,
-        headers=config.hindsight_headers,
+    config = RuntimeConfig.from_environment(require_http_auth=False)
+    backend = HindsightMemoryBackend(
+        base_url=config.hindsight_url,
+        api_key=config.hindsight_api_key,
     )
     server = create_mcp_server(
         backend,

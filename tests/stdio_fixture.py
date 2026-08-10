@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import os
+from pathlib import Path
+
 from corthex.contracts import RecallItem, RecallResult, ReflectResult, RetainResult
 from corthex.mcp_server import create_mcp_server
 from corthex.mcp_stdio import run_modern_stdio
@@ -16,6 +20,16 @@ class FixtureMemory:
         return RetainResult(accepted=True, operation_id=f"fixture-{len(self.items)}")
 
     async def recall(self, bank_id, query, max_tokens=4096):
+        marker_dir = os.environ.get("CORTHEX_CANCELLATION_MARKER_DIR")
+        if query == "wait-for-cancellation" and marker_dir:
+            marker = Path(marker_dir)
+            marker.mkdir(parents=True, exist_ok=True)
+            (marker / "started").write_text("started", encoding="utf-8")
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                (marker / "cancelled").write_text("cancelled", encoding="utf-8")
+                raise
         matches = [RecallItem(text=item, type="world") for item in self.items]
         return RecallResult(text="\n".join(self.items), results=matches)
 

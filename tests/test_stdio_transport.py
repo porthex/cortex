@@ -123,3 +123,81 @@ async def test_explicit_hermes_compatibility_launcher_accepts_legacy_initialize(
 
     assert response["id"] == 1
     assert response["result"]["protocolVersion"] == "2025-11-25"
+
+
+@pytest.mark.asyncio
+async def test_real_stdio_cancelled_notification_cancels_in_flight_tool(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(root / "src")
+    environment["CORTHEX_CANCELLATION_MARKER_DIR"] = str(tmp_path)
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-m",
+        "tests.stdio_fixture",
+        cwd=root,
+        env=environment,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    assert process.stdin is not None
+    assert process.stdout is not None
+    stdin = process.stdin
+    stdout = process.stdout
+    meta = {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+    }
+
+    def send(message: dict) -> None:
+        stdin.write(json.dumps(message).encode() + b"\n")
+
+    send(
+        {
+            "jsonrpc": "2.0",
+            "id": "cancel-stdio",
+            "method": "tools/call",
+            "params": {
+                "name": "corthex_recall",
+                "arguments": {"bank_id": "test-bank", "query": "wait-for-cancellation"},
+                "_meta": meta,
+            },
+        }
+    )
+    await stdin.drain()
+    for _ in range(1000):
+        if (tmp_path / "started").exists():
+            break
+        await asyncio.sleep(0.01)
+    assert (tmp_path / "started").exists()
+
+    send(
+        {
+            "jsonrpc": "2.0",
+            "method": "notifications/cancelled",
+            "params": {"requestId": "cancel-stdio", "reason": "test"},
+        }
+    )
+    await stdin.drain()
+    for _ in range(200):
+        if (tmp_path / "cancelled").exists():
+            break
+        await asyncio.sleep(0.01)
+    assert (tmp_path / "cancelled").exists()
+
+    send(
+        {
+            "jsonrpc": "2.0",
+            "id": "after-cancel",
+            "method": "tools/call",
+            "params": {"name": "corthex_banks", "arguments": {}, "_meta": meta},
+        }
+    )
+    await stdin.drain()
+    response = json.loads(await asyncio.wait_for(stdout.readline(), timeout=10))
+    stdin.close()
+    await asyncio.wait_for(process.wait(), timeout=10)
+
+    assert response["id"] == "after-cancel"
+    assert response["result"]["structuredContent"]["banks"][0]["bank_id"] == "test-bank"

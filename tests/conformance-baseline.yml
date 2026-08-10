@@ -1,10 +1,7 @@
-# The product surface has no tool that uses client sampling, so the official
-# server-stateless diagnostic tool `test_missing_capability` is intentionally
-# absent. Baseline only the two checks that require that synthetic tool; every
-# other stateless 2026-07-28 check remains a hard gate.
+# This baseline contains only the three accepted SHOULD warnings. All 27 MUST
+# checks execute and pass; the conformance-only fixture provides the synthetic
+# sampling-capability diagnostic required by two of those checks.
 server:
-  - server-stateless:sep-2575-server-rejects-undeclared-capability
-  - server-stateless:sep-2575-missing-capability-http-400
   # The conformance output contains serverInfo but this alpha still emits a warning.
   - server-stateless:sep-2575-server-identifies-in-result-meta
   # Corthex has a static product surface; no runtime prompt/tool mutation API exists.

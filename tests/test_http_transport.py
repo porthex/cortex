@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import json
+import socket
+
 import httpx2
 import pytest
+import uvicorn
 from mcp.client import Client
 from mcp.client.streamable_http import streamable_http_client
 
@@ -25,6 +30,23 @@ class IsolatedMemory:
 
     async def close(self):
         return None
+
+
+class CancellableMemory(IsolatedMemory):
+    def __init__(self):
+        super().__init__()
+        self.started = asyncio.Event()
+        self.cancelled = asyncio.Event()
+        self.release = asyncio.Event()
+
+    async def recall(self, bank_id, query, max_tokens=4096):
+        self.started.set()
+        try:
+            await self.release.wait()
+        except asyncio.CancelledError:
+            self.cancelled.set()
+            raise
+        return await super().recall(bank_id, query, max_tokens)
 
 
 @pytest.mark.asyncio
@@ -217,3 +239,70 @@ async def test_http_app_hosts_health_and_v1_memory_facade() -> None:
     assert retained.json() == {"accepted": True, "operation_id": "http-op"}
     assert recalled.json()["text"] == "REST memory"
     assert reflected.json()["text"] == "http reflect"
+
+
+@pytest.mark.asyncio
+async def test_real_http_stream_close_cancels_in_flight_tool() -> None:
+    backend = CancellableMemory()
+    app = build_http_app(
+        backend,
+        allowed_banks={"test-bank": "Isolated"},
+        token="test-token",
+        host="127.0.0.1",
+    )
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen()
+    listener.setblocking(False)
+    port = listener.getsockname()[1]
+    server = uvicorn.Server(
+        uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error", lifespan="off")
+    )
+    serve_task = asyncio.create_task(server.serve(sockets=[listener]))
+    try:
+        async with app.server.session_manager.run():
+            for _ in range(100):
+                if server.started:
+                    break
+                await asyncio.sleep(0.01)
+            assert server.started
+
+            reader, writer = await asyncio.open_connection("127.0.0.1", port)
+            request = {
+                "jsonrpc": "2.0",
+                "id": "cancel-http",
+                "method": "tools/call",
+                "params": {
+                    "name": "corthex_recall",
+                    "arguments": {"bank_id": "test-bank", "query": "wait"},
+                    "_meta": {
+                        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
+                },
+            }
+            body = json.dumps(request).encode()
+            writer.write(
+                b"POST /mcp HTTP/1.1\r\n"
+                + f"Host: 127.0.0.1:{port}\r\n".encode()
+                + b"Authorization: Bearer test-token\r\n"
+                + b"Accept: application/json, text/event-stream\r\n"
+                + b"Content-Type: application/json\r\n"
+                + b"MCP-Protocol-Version: 2026-07-28\r\n"
+                + b"Mcp-Method: tools/call\r\n"
+                + b"Mcp-Name: corthex_recall\r\n"
+                + f"Content-Length: {len(body)}\r\n\r\n".encode()
+                + body
+            )
+            await writer.drain()
+            await asyncio.wait_for(backend.started.wait(), timeout=2)
+            writer.close()
+            await writer.wait_closed()
+            await asyncio.wait_for(backend.cancelled.wait(), timeout=2)
+            assert reader.at_eof()
+    finally:
+        backend.release.set()
+        server.should_exit = True
+        await asyncio.wait_for(serve_task, timeout=5)
+        listener.close()

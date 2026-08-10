@@ -6,7 +6,6 @@ from collections.abc import Mapping
 import json
 from typing import Any
 
-import anyio
 import uvicorn
 
 from .auth import StaticTokenVerifier
@@ -139,22 +138,15 @@ class AuthenticatedMcpApp:
                     return
 
                 replayed = False
-                response_complete = anyio.Event()
 
                 async def replay_receive():
                     nonlocal replayed
                     if not replayed:
                         replayed = True
                         return {"type": "http.request", "body": body, "more_body": False}
-                    await response_complete.wait()
-                    return {"type": "http.disconnect"}
+                    return await receive()
 
-                async def observed_send(event):
-                    await send(event)
-                    if event["type"] == "http.response.body" and not event.get("more_body", False):
-                        response_complete.set()
-
-                await self._app(scope, replay_receive, observed_send)
+                await self._app(scope, replay_receive, send)
                 return
         await self._app(scope, receive, send)
 
