@@ -1,0 +1,20 @@
+# Local agent settings
+.agents/
+.codex/
+
+# Generated, machine-specific configuration
+config/gateway.json
+
+# Private memory data, backups, and runtime state
+backups/
+logs/
+runtime/
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+
+# Local environment and secrets
+.env
+.env.*
+*.local

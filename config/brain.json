@@ -1,0 +1,26 @@
+{
+  "profile": "cortex",
+  "bankId": "cortex",
+  "apiUrl": "http://127.0.0.1:8888",
+  "mcpUrl": "http://127.0.0.1:8877/mcp/cortex/",
+  "gatewayUrl": "http://127.0.0.1:8877",
+  "gatewayConfigPath": "config\\gateway.json",
+  "serviceName": "CortexBrainGateway",
+  "memoryBrowserUrl": "http://localhost:9999",
+  "memoryBrowserPort": 9999,
+  "model": "gpt-oss:20b",
+  "pollSeconds": 2,
+  "deepSleepDelaySeconds": 300,
+  "healthTimeoutSeconds": 720,
+  "startRetryDelaySeconds": 60,
+  "processNames": [
+    "ChatGPT",
+    "codex",
+    "Claude",
+    "claude",
+    "Cursor",
+    "Windsurf",
+    "OpenCode",
+    "gemini"
+  ]
+}
