@@ -7,7 +7,7 @@ import json
 import sys
 from typing import Any
 
-OWNED_CORTHEX_TARGET = "http://127.0.0.1:8890"
+OWNED_CORTEX_TARGET = "http://127.0.0.1:8890"
 
 
 def has_public_funnel(value: Any) -> bool:
@@ -22,31 +22,31 @@ def has_public_funnel(value: Any) -> bool:
     return False
 
 
-def has_corthex_path(value: Any) -> bool:
+def has_cortex_path(value: Any) -> bool:
     if isinstance(value, dict):
-        return "/corthex" in value or any(has_corthex_path(child) for child in value.values())
+        return "/cortex" in value or any(has_cortex_path(child) for child in value.values())
     if isinstance(value, list):
-        return any(has_corthex_path(item) for item in value)
+        return any(has_cortex_path(item) for item in value)
     return False
 
 
-def corthex_targets(value: Any) -> list[str | None]:
+def cortex_targets(value: Any) -> list[str | None]:
     targets: list[str | None] = []
     if isinstance(value, dict):
         for key, child in value.items():
-            if key == "/corthex":
+            if key == "/cortex":
                 targets.append(child.get("Proxy") if isinstance(child, dict) else None)
-            targets.extend(corthex_targets(child))
+            targets.extend(cortex_targets(child))
     elif isinstance(value, list):
         for child in value:
-            targets.extend(corthex_targets(child))
+            targets.extend(cortex_targets(child))
     return targets
 
 
 def main() -> int:
-    allow_owned = sys.argv[1:] == ["--allow-owned-corthex"]
+    allow_owned = sys.argv[1:] == ["--allow-owned-cortex"]
     if sys.argv[1:] and not allow_owned:
-        print("Usage: check-serve-private.py [--allow-owned-corthex]", file=sys.stderr)
+        print("Usage: check-serve-private.py [--allow-owned-cortex]", file=sys.stderr)
         return 2
     try:
         status = json.load(sys.stdin)
@@ -54,11 +54,11 @@ def main() -> int:
         print(f"Cannot validate Tailscale Serve status: {exc}", file=sys.stderr)
         return 2
     if has_public_funnel(status):
-        print("Tailscale Funnel is configured; Corthex requires tailnet-only Serve", file=sys.stderr)
+        print("Tailscale Funnel is configured; Cortex requires tailnet-only Serve", file=sys.stderr)
         return 1
-    targets = corthex_targets(status)
-    if targets and not (allow_owned and all(target == OWNED_CORTHEX_TARGET for target in targets)):
-        print("Tailscale Serve path /corthex already exists; refusing to replace it", file=sys.stderr)
+    targets = cortex_targets(status)
+    if targets and not (allow_owned and all(target == OWNED_CORTEX_TARGET for target in targets)):
+        print("Tailscale Serve path /cortex already exists; refusing to replace it", file=sys.stderr)
         return 1
     return 0
 

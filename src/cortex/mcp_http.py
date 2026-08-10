@@ -1,4 +1,4 @@
-"""Authenticated Streamable HTTP launcher for Corthex MCP."""
+"""Authenticated Streamable HTTP launcher for Cortex MCP."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ class AuthenticatedMcpApp:
                         "headers": [
                             (b"content-type", b"application/json"),
                             (b"content-length", str(len(body)).encode()),
-                            (b"www-authenticate", b'Bearer realm="corthex"'),
+                            (b"www-authenticate", b'Bearer realm="cortex"'),
                         ],
                     }
                 )

@@ -10,8 +10,8 @@ import uvicorn
 from mcp.client import Client
 from mcp.client.streamable_http import streamable_http_client
 
-from corthex.contracts import RecallResult, ReflectResult, RetainResult
-from corthex.mcp_http import build_http_app
+from cortex.contracts import RecallResult, ReflectResult, RetainResult
+from cortex.mcp_http import build_http_app
 
 
 class IsolatedMemory:
@@ -99,7 +99,7 @@ async def test_streamable_http_requires_bearer_and_discovers_tools() -> None:
             assert direct.json()["id"] == "direct-first"
             assert "Mcp-Session-Id" not in direct.headers
 
-            resource_uri = "corthex://banks/test-bank"
+            resource_uri = "cortex://banks/test-bank"
             resource = await authenticated.post(
                 "/mcp",
                 json={
@@ -222,10 +222,10 @@ async def test_streamable_http_requires_bearer_and_discovers_tools() -> None:
                 tools = await client.list_tools()
 
     assert {tool.name for tool in tools.tools} == {
-        "corthex_banks",
-        "corthex_recall",
-        "corthex_reflect",
-        "corthex_retain",
+        "cortex_banks",
+        "cortex_recall",
+        "cortex_reflect",
+        "cortex_retain",
     }
 
 
@@ -236,7 +236,7 @@ async def test_streamable_http_accepts_the_configured_public_proxy_host() -> Non
         allowed_banks={"test-bank": "Isolated"},
         token="test-token",
         host="127.0.0.1",
-        public_url="https://brain.example.ts.net/corthex/mcp",
+        public_url="https://brain.example.ts.net/cortex/mcp",
     )
     transport = httpx2.ASGITransport(app=app)
     async with app.server.session_manager.run():
@@ -431,7 +431,7 @@ async def test_real_http_stream_close_cancels_in_flight_tool() -> None:
                 "id": "cancel-http",
                 "method": "tools/call",
                 "params": {
-                    "name": "corthex_recall",
+                    "name": "cortex_recall",
                     "arguments": {"bank_id": "test-bank", "query": "wait"},
                     "_meta": {
                         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
@@ -448,7 +448,7 @@ async def test_real_http_stream_close_cancels_in_flight_tool() -> None:
                 + b"Content-Type: application/json\r\n"
                 + b"MCP-Protocol-Version: 2026-07-28\r\n"
                 + b"Mcp-Method: tools/call\r\n"
-                + b"Mcp-Name: corthex_recall\r\n"
+                + b"Mcp-Name: cortex_recall\r\n"
                 + f"Content-Length: {len(body)}\r\n\r\n".encode()
                 + body
             )

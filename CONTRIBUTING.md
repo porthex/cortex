@@ -1,6 +1,6 @@
-# Contributing to Corthex
+# Contributing to Cortex
 
-Thank you for helping improve Corthex. The project is at an early stage, so small, reviewable changes are preferred.
+Thank you for helping improve Cortex. The project is at an early stage, so small, reviewable changes are preferred.
 
 ## Before opening a change
 
@@ -36,4 +36,4 @@ Use clear commit messages. Maintainers may ask contributors to split unrelated c
 
 ## Licensing contributions
 
-The repository does not yet declare a Corthex project license or an inbound contribution grant. Until maintainers publish explicit contribution terms, please open issues and discussions but do not submit external code or content for merging. License selection and contribution terms are explicit owner decisions still to be made.
+The repository does not yet declare a Cortex project license or an inbound contribution grant. Until maintainers publish explicit contribution terms, please open issues and discussions but do not submit external code or content for merging. License selection and contribution terms are explicit owner decisions still to be made.

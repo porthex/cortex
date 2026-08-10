@@ -7,7 +7,7 @@ import sys
 import pytest
 from mcp.client import Client
 
-from corthex.mcp_stdio import build_stdio_server
+from cortex.mcp_stdio import build_stdio_server
 from tests.test_mcp_server import FakeMemory
 
 
@@ -19,18 +19,18 @@ async def test_stdio_entrypoint_builds_same_public_server() -> None:
         tools = await client.list_tools()
 
     assert {tool.name for tool in tools.tools} == {
-        "corthex_banks",
-        "corthex_recall",
-        "corthex_reflect",
-        "corthex_retain",
+        "cortex_banks",
+        "cortex_recall",
+        "cortex_reflect",
+        "cortex_retain",
     }
 
 
 @pytest.mark.asyncio
 async def test_installed_hermes_entrypoint_discovers_and_calls_banks() -> None:
-    executable = Path(sys.executable).parent / "corthex-mcp-stdio-hermes"
+    executable = Path(sys.executable).parent / "cortex-mcp-stdio-hermes"
     environment = dict(os.environ)
-    environment["CORTHEX_BANKS_JSON"] = json.dumps({"test-bank": "Isolated"})
+    environment["CORTEX_BANKS_JSON"] = json.dumps({"test-bank": "Isolated"})
     process = await asyncio.create_subprocess_exec(
         str(executable),
         env=environment,
@@ -72,7 +72,7 @@ async def test_installed_hermes_entrypoint_discovers_and_calls_banks() -> None:
             "jsonrpc": "2.0",
             "id": 3,
             "method": "tools/call",
-            "params": {"name": "corthex_banks", "arguments": {}},
+            "params": {"name": "cortex_banks", "arguments": {}},
         }
     )
 
@@ -81,7 +81,7 @@ async def test_installed_hermes_entrypoint_discovers_and_calls_banks() -> None:
     stderr = (await stderr_stream.read()).decode()
 
     assert initialized["result"]["protocolVersion"] == "2025-11-25"
-    assert {tool["name"] for tool in tools["result"]["tools"]} >= {"corthex_banks"}
+    assert {tool["name"] for tool in tools["result"]["tools"]} >= {"cortex_banks"}
     assert banks["result"]["structuredContent"] == {
         "banks": [{"bank_id": "test-bank", "description": "Isolated"}]
     }

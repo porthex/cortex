@@ -1,4 +1,4 @@
-"""Adapter from Corthex public contracts to the Hindsight client."""
+"""Adapter from Cortex public contracts to the Hindsight client."""
 
 from __future__ import annotations
 

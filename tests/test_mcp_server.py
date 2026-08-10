@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 from mcp.client import Client
 
-from corthex.contracts import RecallResult, ReflectResult, RetainResult
-from corthex.mcp_server import create_mcp_server
+from cortex.contracts import RecallResult, ReflectResult, RetainResult
+from cortex.mcp_server import create_mcp_server
 
 
 @dataclass
@@ -33,7 +33,7 @@ class FakeMemory:
 
 
 @pytest.mark.asyncio
-async def test_server_exposes_corthex_tools_and_maps_retain_to_backend() -> None:
+async def test_server_exposes_cortex_tools_and_maps_retain_to_backend() -> None:
     backend = FakeMemory()
     server = create_mcp_server(backend, allowed_banks={"test-bank": "Isolated test bank"})
 
@@ -41,11 +41,11 @@ async def test_server_exposes_corthex_tools_and_maps_retain_to_backend() -> None
         listed = await client.list_tools()
         names = {tool.name for tool in listed.tools}
         result = await client.call_tool(
-            "corthex_retain",
+            "cortex_retain",
             {"bank_id": "test-bank", "content": "Durable preference"},
         )
 
-    assert names == {"corthex_banks", "corthex_recall", "corthex_reflect", "corthex_retain"}
+    assert names == {"cortex_banks", "cortex_recall", "cortex_reflect", "cortex_retain"}
     assert result.is_error is False
     assert result.structured_content == {"accepted": True, "operation_id": "op-1"}
     assert backend.calls == [("retain", "test-bank", "Durable preference")]
@@ -58,10 +58,10 @@ async def test_server_preserves_bank_boundary_for_tools_and_resources() -> None:
     server = create_mcp_server(backend, allowed_banks={"bank-a": "Allowed bank"})
 
     async with Client(server) as client:
-        banks = await client.call_tool("corthex_banks")
-        resource = await client.read_resource("corthex://banks/bank-a")
+        banks = await client.call_tool("cortex_banks")
+        resource = await client.read_resource("cortex://banks/bank-a")
         denied = await client.call_tool(
-            "corthex_recall",
+            "cortex_recall",
             {"bank_id": "bank-b", "query": "must not cross"},
         )
 

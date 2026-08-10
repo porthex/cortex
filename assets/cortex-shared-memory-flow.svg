@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">How Cortex gives AI clients one shared memory</title>
+  <desc id="desc">Claude, Codex, desktop AI clients, and scripts connect through authenticated MCP or CLI to the Cortex gateway, which validates requests, limits bank access, and uses Hindsight with PostgreSQL and vector indexing.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050607"/><stop offset="1" stop-color="#0b0d0f"/></linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#f2f0ea"/><stop offset=".48" stop-color="#aeb5b9"/><stop offset="1" stop-color="#626b72"/></linearGradient>
+    <linearGradient id="memory" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#20252a"/><stop offset="1" stop-color="#111417"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#20252a" stroke-width="1" opacity=".32"/></pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000" flood-opacity=".55"/></filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto"><path d="M1 1l9 5-9 5z" fill="#b8bec2"/></marker>
+    <style>
+      .eyebrow{font:600 14px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:3px;fill:#868e94}
+      .title{font:600 42px Inter,Arial,sans-serif;fill:#f3f1eb}
+      .subtitle{font:400 18px Inter,Arial,sans-serif;fill:#a4aaae}
+      .label{font:600 20px Inter,Arial,sans-serif;fill:#eceae4}
+      .small{font:400 14px Inter,Arial,sans-serif;fill:#929aa0}
+      .micro{font:600 12px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1px;fill:#b9b5aa}
+      .box{fill:#101315;stroke:#3d4449;stroke-width:1.5}
+      .box2{fill:url(#memory);stroke:#757e84;stroke-width:1.5}
+      .flow{fill:none;stroke:#aeb5b9;stroke-width:2.2;marker-end:url(#arrow)}
+      .flow-dim{fill:none;stroke:#697178;stroke-width:1.5;stroke-dasharray:6 7;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1600" height="760" rx="28" fill="url(#bg)"/>
+  <rect width="1600" height="760" rx="28" fill="url(#grid)"/>
+  <rect x="1" y="1" width="1598" height="758" rx="27" fill="none" stroke="#2b3034" stroke-width="2"/>
+
+  <text x="72" y="70" class="eyebrow">CORTEX / SHARED MEMORY</text>
+  <text x="72" y="122" class="title">One memory layer. Every AI client.</text>
+  <text x="72" y="157" class="subtitle">Clients change. The authenticated bank and memory engine stay consistent.</text>
+
+  <!-- connectors behind nodes -->
+  <path d="M342 278 C430 278 450 340 520 340" class="flow"/>
+  <path d="M342 392 C430 392 450 358 520 358" class="flow"/>
+  <path d="M342 506 C430 506 450 376 520 376" class="flow"/>
+  <path d="M342 620 C430 620 450 394 520 394" class="flow"/>
+  <path d="M820 360 H920" class="flow"/>
+  <path d="M1204 360 H1290" class="flow"/>
+  <path d="M1062 474 V540" class="flow-dim"/>
+
+  <!-- clients -->
+  <g filter="url(#shadow)">
+    <rect x="72" y="228" width="270" height="92" rx="14" class="box"/><rect x="92" y="250" width="5" height="48" rx="2.5" fill="#e5e2da"/>
+    <text x="118" y="268" class="label">Claude</text><text x="118" y="294" class="small">MCP over stdio or HTTP</text>
+    <rect x="72" y="342" width="270" height="92" rx="14" class="box"/><rect x="92" y="364" width="5" height="48" rx="2.5" fill="#b7bec2"/>
+    <text x="118" y="382" class="label">Codex + ChatGPT</text><text x="118" y="408" class="small">Shared MCP configuration</text>
+    <rect x="72" y="456" width="270" height="92" rx="14" class="box"/><rect x="92" y="478" width="5" height="48" rx="2.5" fill="#8f989e"/>
+    <text x="118" y="496" class="label">Desktop AI tools</text><text x="118" y="522" class="small">Cursor, Windsurf, clients</text>
+    <rect x="72" y="570" width="270" height="92" rx="14" class="box"/><rect x="92" y="592" width="5" height="48" rx="2.5" fill="#6f787f"/>
+    <text x="118" y="610" class="label">Scripts + operators</text><text x="118" y="636" class="small">Cross-platform Cortex CLI</text>
+  </g>
+
+  <!-- boundary -->
+  <g filter="url(#shadow)">
+    <rect x="520" y="250" width="300" height="220" rx="20" fill="#0d1012" stroke="#666f75" stroke-width="1.7"/>
+    <rect x="548" y="278" width="244" height="48" rx="10" fill="#1b2024" stroke="#899197"/>
+    <text x="670" y="309" text-anchor="middle" class="micro">MCP 2026-07-28 + CLI</text>
+    <text x="670" y="365" text-anchor="middle" class="label">Cortex gateway</text>
+    <text x="670" y="395" text-anchor="middle" class="small">authentication · bank boundary</text>
+    <text x="670" y="418" text-anchor="middle" class="small">allowed banks · request validation</text>
+    <rect x="572" y="440" width="196" height="3" rx="1.5" fill="url(#silver)"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="920" y="250" width="284" height="220" rx="20" class="box2"/>
+    <text x="1062" y="306" text-anchor="middle" class="eyebrow">MEMORY ENGINE</text>
+    <text x="1062" y="358" text-anchor="middle" class="label">Hindsight</text>
+    <text x="1062" y="390" text-anchor="middle" class="small">retain · recall · reflect</text>
+    <text x="1062" y="415" text-anchor="middle" class="small">extract · link · consolidate</text>
+    <circle cx="1005" cy="442" r="4" fill="#d9d6ce"/><circle cx="1034" cy="442" r="4" fill="#9da5aa"/><circle cx="1062" cy="442" r="4" fill="#727b81"/><circle cx="1090" cy="442" r="4" fill="#9da5aa"/><circle cx="1119" cy="442" r="4" fill="#d9d6ce"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1290" y="250" width="238" height="220" rx="20" class="box"/>
+    <text x="1409" y="306" text-anchor="middle" class="eyebrow">DURABLE STORE</text>
+    <text x="1409" y="358" text-anchor="middle" class="label">PostgreSQL</text>
+    <text x="1409" y="390" text-anchor="middle" class="small">records + metadata</text>
+    <text x="1409" y="415" text-anchor="middle" class="small">vector index + provenance</text>
+    <ellipse cx="1409" cy="446" rx="49" ry="12" fill="none" stroke="#737c82"/><path d="M1360 446v26c0 7 22 13 49 13s49-6 49-13v-26" fill="none" stroke="#737c82"/>
+  </g>
+
+  <g>
+    <rect x="920" y="540" width="284" height="102" rx="15" fill="#0d0f11" stroke="#353b40"/>
+    <text x="1062" y="574" text-anchor="middle" class="micro">VISIBLE, REVERSIBLE MEMORY</text>
+    <text x="1062" y="604" text-anchor="middle" class="small">Memory Browser · backup · restore</text>
+    <text x="1062" y="627" text-anchor="middle" class="small">migration · dedup · source provenance</text>
+  </g>
+
+  <text x="1528" y="712" text-anchor="end" class="eyebrow">BY PORTHEX</text>
+</svg>
