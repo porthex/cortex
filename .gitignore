@@ -18,3 +18,37 @@ __pycache__/
 .env
 .env.*
 *.local
+
+# Credentials and private keys
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+secrets/
+
+# Local databases and exports
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*-wal
+*-shm
+*-journal
+*.dump
+*.sql
+data/
+memories/
+
+# Additional tool and operating-system artifacts
+.pytest_cache/
+.venv/
+node_modules/
+coverage/
+dist/
+build/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

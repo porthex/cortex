@@ -127,3 +127,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Uninstall-Cort
 ```
 
 `-RemoveMemoryData` is irreversible; make and verify a backup first.
+
+## Corthex repository status
+
+This repository currently ships the Windows Cortex Brain baseline described above. Corthex is the planned shared integration and operations layer around that implementation; the per-client policy, audit, migration, and lifecycle controls in the [target architecture](docs/architecture.md) are not all implemented yet.
+
+Corthex uses [Hindsight](https://github.com/vectorize-io/hindsight) as its underlying memory engine. Hindsight is a separate MIT-licensed project; Corthex does not copy or relicense its source. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). The Corthex project license and inbound contribution terms remain undecided; see [LICENSES.md](LICENSES.md).

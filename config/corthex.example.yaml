@@ -1,0 +1,48 @@
+# Architecture-level example only. Runtime implementations must validate every key.
+version: 1
+
+gateway:
+  listen: "127.0.0.1:8080"
+  public_base_url: "https://memory.example.test"
+  authentication:
+    mode: "bearer"
+    token_env: "CORTHEX_GATEWAY_TOKEN"
+  authorization:
+    default: "deny"
+    clients:
+      - id: "example-client"
+        banks: ["example-bank"]
+        operations: ["retain", "recall"]
+  limits:
+    max_request_bytes: 65536
+    requests_per_minute: 60
+
+engine:
+  provider: "hindsight"
+  endpoint: "http://hindsight.internal.example.test:8888"
+  bank: "example-bank"
+
+storage:
+  database_url_env: "CORTHEX_DATABASE_URL"
+  tls_required: true
+
+models:
+  mode: "local"
+  endpoint: "http://models.internal.example.test:11434"
+  remote_api_key_env: "CORTHEX_MODEL_API_KEY"
+
+memory_policy:
+  store_raw_transcripts: false
+  redact_secrets: true
+  max_retention_days: 365
+  provenance_required: true
+
+audit:
+  enabled: true
+  include_memory_bodies: false
+
+backup:
+  enabled: true
+  encryption_key_env: "CORTHEX_BACKUP_KEY"
+  destination: "s3://example-corthex-backups/"
+  restore_test_required: true
