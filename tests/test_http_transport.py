@@ -97,6 +97,32 @@ async def test_streamable_http_requires_bearer_and_discovers_tools() -> None:
             assert direct.json()["id"] == "direct-first"
             assert "Mcp-Session-Id" not in direct.headers
 
+            resource_uri = "corthex://banks/test-bank"
+            resource = await authenticated.post(
+                "/mcp",
+                json={
+                    "jsonrpc": "2.0",
+                    "id": "resource-read",
+                    "method": "resources/read",
+                    "params": {
+                        "uri": resource_uri,
+                        "_meta": {
+                            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                            "io.modelcontextprotocol/clientCapabilities": {},
+                        },
+                    },
+                },
+                headers={
+                    "Accept": "application/json, text/event-stream",
+                    "MCP-Protocol-Version": "2026-07-28",
+                    "Mcp-Method": "resources/read",
+                    "Mcp-Name": resource_uri,
+                },
+            )
+            assert resource.status_code == 200, resource.text
+            contents = resource.json()["result"]["contents"]
+            assert contents[0]["uri"] == resource_uri
+
             missing_meta = await authenticated.post(
                 "/mcp",
                 json={"jsonrpc": "2.0", "id": "missing", "method": "tools/list", "params": {}},

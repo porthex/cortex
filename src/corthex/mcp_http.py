@@ -113,13 +113,24 @@ class AuthenticatedMcpApp:
                 requested = meta[protocol_key]
                 mirrored_version = headers.get(b"mcp-protocol-version", b"").decode("latin-1")
                 mirrored_method = headers.get(b"mcp-method", b"").decode("latin-1")
-                name_required = method in {"tools/call", "resources/read", "prompts/get"}
-                body_name = params.get("name") if isinstance(params, dict) else None
+                request_name_fields = {
+                    "tools/call": "name",
+                    "resources/read": "uri",
+                    "prompts/get": "name",
+                }
+                request_name_field: str | None = (
+                    request_name_fields.get(method) if isinstance(method, str) else None
+                )
+                body_name = (
+                    params.get(request_name_field)
+                    if isinstance(params, dict) and request_name_field is not None
+                    else None
+                )
                 mirrored_name = headers.get(b"mcp-name", b"").decode("latin-1")
                 if (
                     mirrored_version != requested
                     or mirrored_method != method
-                    or (name_required and mirrored_name != body_name)
+                    or (request_name_field is not None and mirrored_name != body_name)
                 ):
                     await self._send_error(send, message.get("id"), -32020, "Required HTTP mirror header mismatch")
                     return
