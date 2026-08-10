@@ -21,7 +21,7 @@ tailscale status >/dev/null
 
 # Fail closed before mutation: do not publish alongside Funnel or replace an owned route.
 SERVE_STATUS=$(tailscale serve status --json)
-python3 "$SOURCE_DIR/deploy/check-serve-private.py" <<<"$SERVE_STATUS"
+python3 "$SOURCE_DIR/deploy/check-serve-private.py" --allow-owned-corthex <<<"$SERVE_STATUS"
 
 getent group corthex >/dev/null || groupadd --system corthex
 id -u corthex >/dev/null 2>&1 || useradd \
@@ -179,7 +179,7 @@ CORTHEX_MCP_TOKEN="$TOKEN" python3 "$SOURCE_DIR/deploy/check-local-auth.py" \
 exec 9>/run/lock/corthex-tailscale-serve.lock
 flock 9
 SERVE_STATUS=$(tailscale serve status --json)
-python3 "$SOURCE_DIR/deploy/check-serve-private.py" <<<"$SERVE_STATUS"
+python3 "$SOURCE_DIR/deploy/check-serve-private.py" --allow-owned-corthex <<<"$SERVE_STATUS"
 tailscale serve --bg --yes --set-path /corthex http://127.0.0.1:8890
 flock -u 9
 INSTALL_COMPLETE=1

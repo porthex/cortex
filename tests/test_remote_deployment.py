@@ -60,6 +60,25 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertNotEqual(0, collision.returncode)
         self.assertIn("/corthex", collision.stderr)
 
+    def test_serve_checker_allows_only_the_existing_corthex_target_on_upgrade(self) -> None:
+        checker = ROOT / "deploy/check-serve-private.py"
+        owned = '{"Web":{"host:443":{"Handlers":{"/corthex":{"Proxy":"http://127.0.0.1:8890"}}}}}'
+        other = '{"Web":{"host:443":{"Handlers":{"/corthex":{"Proxy":"http://127.0.0.1:9999"}}}}}'
+        accepted = subprocess.run(
+            ["python3", str(checker), "--allow-owned-corthex"],
+            input=owned,
+            text=True,
+            capture_output=True,
+        )
+        rejected = subprocess.run(
+            ["python3", str(checker), "--allow-owned-corthex"],
+            input=other,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(0, accepted.returncode, accepted.stderr)
+        self.assertNotEqual(0, rejected.returncode)
+
     def test_local_auth_checker_requires_denial_and_correct_token(self) -> None:
         token = "unit-test-token"
 
@@ -139,6 +158,7 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         script = self.read("deploy/install-vps.sh")
         self.assertIn("flock 9", script)
         self.assertGreaterEqual(script.count("tailscale serve status --json"), 2)
+        self.assertGreaterEqual(script.count("--allow-owned-corthex"), 2)
         self.assertNotIn("tailscale serve --yes --https=443 --set-path /corthex off", script)
 
     def test_local_auth_checker_uses_mcp_token_environment_name(self) -> None:
