@@ -60,6 +60,6 @@ Security work stops when every row in the fixed matrix passes. This ADR delibera
 - Tailscale concepts and WireGuard transport: https://tailscale.com/docs/concepts/what-is-tailscale
 - Tailscale Serve command and tailnet-only HTTPS: https://tailscale.com/docs/reference/tailscale-cli/serve
 - Tailscale access controls: https://tailscale.com/docs/features/access-control/acls
-- OpenSSH local forwarding: https://man.openbsd.org/ssh
+- OpenSSH `ssh(1)` local forwarding (`-L`)
 - MCP stable release 2026-07-28: https://github.com/modelcontextprotocol/modelcontextprotocol/releases/tag/2026-07-28
 - MCP Streamable HTTP transport: https://github.com/modelcontextprotocol/modelcontextprotocol/blob/2026-07-28/docs/specification/2026-07-28/basic/transports/streamable-http.mdx
