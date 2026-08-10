@@ -27,12 +27,24 @@ getent group corthex >/dev/null || groupadd --system corthex
 id -u corthex >/dev/null 2>&1 || useradd \
   --system --gid corthex --home-dir /var/lib/corthex --shell /usr/sbin/nologin corthex
 
-install -d -o root -g root -m 0755 /opt/corthex
+install -d -o root -g root -m 0755 /opt/corthex /opt/corthex/releases
 install -d -o root -g corthex -m 0750 /etc/corthex
 install -d -o corthex -g corthex -m 0750 /var/lib/corthex /var/log/corthex
 
-rm -rf /opt/corthex/.venv.next
-python3 -m venv /opt/corthex/.venv.next
+rm -f /opt/corthex/.venv.next
+NEW_RELEASE="/opt/corthex/releases/$(date -u +%Y%m%dT%H%M%SZ)-$$"
+RELEASE_READY=0
+cleanup_release() {
+  local rc=$?
+  if [[ $RELEASE_READY -ne 1 ]]; then
+    rm -f /opt/corthex/.venv.next
+    rm -rf "$NEW_RELEASE"
+  fi
+  exit "$rc"
+}
+trap 'cleanup_release' EXIT
+python3 -m venv "$NEW_RELEASE"
+ln -s "$NEW_RELEASE" /opt/corthex/.venv.next
 /opt/corthex/.venv.next/bin/pip install --disable-pip-version-check "$SOURCE_DIR"
 /opt/corthex/.venv.next/bin/python -c 'import corthex.mcp_http'
 
@@ -76,10 +88,14 @@ HAD_BACKUP_ENV=0
 HAD_UNIT=0
 WAS_ENABLED=0
 WAS_ACTIVE=0
+PREVIOUS_RELEASE=""
 
 cleanup_install() {
   rm -f "$ENV_TMP" "$BACKUP_TMP"
-  rm -rf /opt/corthex/.venv.next
+  rm -f /opt/corthex/.venv.next
+  if [[ $INSTALL_COMPLETE -ne 1 ]]; then
+    rm -rf "$NEW_RELEASE"
+  fi
 }
 
 rollback_install() {
@@ -117,6 +133,7 @@ rollback_install() {
   cleanup_install
   exit "$rc"
 }
+RELEASE_READY=1
 trap 'rollback_install' EXIT
 
 {
@@ -139,8 +156,9 @@ systemctl is-active --quiet corthex-remote.service && WAS_ACTIVE=1 || true
 rm -rf /opt/corthex/.venv.previous
 rm -f /etc/corthex/corthex.env.previous /etc/corthex/backup.env.previous \
   /etc/systemd/system/corthex-remote.service.previous
-if [[ -d /opt/corthex/.venv ]]; then
+if [[ -e /opt/corthex/.venv || -L /opt/corthex/.venv ]]; then
   HAD_VENV=1
+  PREVIOUS_RELEASE=$(readlink -f /opt/corthex/.venv || true)
   mv /opt/corthex/.venv /opt/corthex/.venv.previous
 fi
 if [[ -f "$RUNTIME_ENV" ]]; then
@@ -156,7 +174,7 @@ if [[ -f "$UNIT_PATH" ]]; then
   cp -a "$UNIT_PATH" /etc/systemd/system/corthex-remote.service.previous
 fi
 INSTALL_MUTATED=1
-mv /opt/corthex/.venv.next /opt/corthex/.venv
+mv -T /opt/corthex/.venv.next /opt/corthex/.venv
 install -m 0600 -o root -g corthex "$ENV_TMP" "$RUNTIME_ENV"
 install -m 0600 -o root -g root "$BACKUP_TMP" "$BACKUP_ENV"
 install -m 0644 "$SOURCE_DIR/deploy/corthex-remote.service" "$UNIT_PATH"
@@ -184,6 +202,9 @@ tailscale serve --bg --yes --set-path /corthex http://127.0.0.1:8890
 flock -u 9
 INSTALL_COMPLETE=1
 rm -rf /opt/corthex/.venv.previous
+if [[ -n "$PREVIOUS_RELEASE" && "$PREVIOUS_RELEASE" == /opt/corthex/releases/* ]]; then
+  rm -rf "$PREVIOUS_RELEASE"
+fi
 rm -f /etc/corthex/corthex.env.previous /etc/corthex/backup.env.previous \
   /etc/systemd/system/corthex-remote.service.previous
 
