@@ -1,0 +1,35 @@
+[Unit]
+Description=Corthex Remote Brain gateway
+Documentation=https://github.com/porthex/corthex/blob/main/docs/REMOTE_BRAIN_VPS.md
+After=network-online.target tailscaled.service
+Wants=network-online.target
+Requires=tailscaled.service
+
+[Service]
+Type=simple
+User=corthex
+Group=corthex
+WorkingDirectory=/opt/corthex
+EnvironmentFile=/etc/corthex/corthex.env
+ExecStart=/opt/corthex/.venv/bin/corthex-mcp-http
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/corthex /var/log/corthex
+
+[Install]
+WantedBy=multi-user.target
