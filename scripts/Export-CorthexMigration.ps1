@@ -19,14 +19,28 @@ if ($health.status -ne "healthy" -or $health.database -ne "connected") {
     throw "Corthex source Hindsight health check failed closed."
 }
 
-$bankBackup = & (Join-Path $PSScriptRoot "Backup-CortexBrain.ps1") -Type Bank
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $bankBackup)) {
+$bankBackupOutput = @(& (Join-Path $PSScriptRoot "Backup-CortexBrain.ps1") -Type Bank)
+$bankBackupExitCode = $LASTEXITCODE
+$bankBackup = if ($bankBackupOutput.Count -gt 0) { $bankBackupOutput[-1] } else { $null }
+if (
+    $bankBackupExitCode -ne 0 -or
+    $bankBackup -isnot [string] -or
+    [string]::IsNullOrWhiteSpace($bankBackup) -or
+    -not (Test-Path -LiteralPath $bankBackup -PathType Leaf)
+) {
     throw "Source bank backup did not complete."
 }
 Copy-Item -LiteralPath $bankBackup -Destination $OutputDirectory -Force
 
-$fullBackup = & (Join-Path $PSScriptRoot "Backup-CortexBrain.ps1") -Type Full
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $fullBackup)) {
+$fullBackupOutput = @(& (Join-Path $PSScriptRoot "Backup-CortexBrain.ps1") -Type Full)
+$fullBackupExitCode = $LASTEXITCODE
+$fullBackup = if ($fullBackupOutput.Count -gt 0) { $fullBackupOutput[-1] } else { $null }
+if (
+    $fullBackupExitCode -ne 0 -or
+    $fullBackup -isnot [string] -or
+    [string]::IsNullOrWhiteSpace($fullBackup) -or
+    -not (Test-Path -LiteralPath $fullBackup -PathType Leaf)
+) {
     throw "Full source backend backup did not complete."
 }
 Copy-Item -LiteralPath $fullBackup -Destination $OutputDirectory -Force
