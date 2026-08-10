@@ -120,6 +120,63 @@ class MemoryCommandTests(unittest.TestCase):
 
 
 class FailureContractTests(unittest.TestCase):
+    def test_malformed_gateway_shapes_return_stable_invalid_response_without_leakage(self) -> None:
+        malformed_responses = [
+            (200, {"ok": False, "error": "malformed"}),
+            (200, {"ok": False, "error": None}),
+            (200, {"ok": False, "error": {}}),
+            (200, {"ok": False, "error": {"code": [], "message": "no"}}),
+            (200, {"ok": "false", "error": {"code": "rejected", "message": "no"}}),
+            (200, {"ok": True}),
+            (200, "malformed-direct-response"),
+            (401, {"error": "malformed"}),
+            (401, {"error": {}}),
+            (500, {"error": "malformed"}),
+            (500, {"error": {"code": "failed"}}),
+        ]
+
+        with tempfile.TemporaryDirectory() as directory, IsolatedGateway() as gateway:
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(
+                json.dumps({"url": gateway.url, "bank": "isolated", "timeout": 2}),
+                encoding="utf-8",
+            )
+            environment = {
+                "CORTHEX_CONFIG": str(config_path),
+                "CORTHEX_TOKEN": gateway.token,
+            }
+
+            for status_code, body in malformed_responses:
+                with self.subTest(status_code=status_code, body=body):
+                    gateway.status_code = status_code
+                    gateway.status_body = body
+                    stdout = io.StringIO()
+                    stderr = io.StringIO()
+
+                    code = main(
+                        ["--json", "status"],
+                        environ=environment,
+                        stdout=stdout,
+                        stderr=stderr,
+                    )
+
+                    self.assertEqual(code, 7)
+                    self.assertEqual(
+                        json.loads(stdout.getvalue()),
+                        {
+                            "ok": False,
+                            "command": "status",
+                            "data": None,
+                            "error": {
+                                "code": "invalid_response",
+                                "message": "Corthex returned an invalid response",
+                                "retryable": False,
+                            },
+                        },
+                    )
+                    self.assertEqual(stderr.getvalue(), "")
+                    self.assertNotIn(gateway.token, stdout.getvalue() + stderr.getvalue())
+
     def test_json_usage_error_is_a_stable_json_envelope(self) -> None:
         stdout = io.StringIO()
         stderr = io.StringIO()

@@ -13,6 +13,8 @@ class IsolatedGateway(AbstractContextManager["IsolatedGateway"]):
     def __init__(self) -> None:
         self.requests: list[dict[str, Any]] = []
         self.memories: dict[str, list[str]] = {}
+        self.status_code = 200
+        self.status_body: object = {"ok": True, "data": {"state": "ready", "version": "test"}}
         owner = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -35,7 +37,7 @@ class IsolatedGateway(AbstractContextManager["IsolatedGateway"]):
                     self._respond(401, {"error": {"code": f"bad {self.headers.get('Authorization')}", "message": f"denied {self.headers.get('Authorization')}"}})
                     return
                 if self.path == "/v1/status":
-                    self._respond(200, {"ok": True, "data": {"state": "ready", "version": "test"}})
+                    self._respond(owner.status_code, owner.status_body)
                     return
                 if self.path == "/v1/banks":
                     self._respond(200, {"ok": True, "data": {"banks": sorted(owner.memories)}})

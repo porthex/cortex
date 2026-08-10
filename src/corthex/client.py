@@ -42,6 +42,18 @@ class Client:
             text = text.replace(self._token, "[redacted]")
         return text if re.fullmatch(r"[a-z][a-z0-9_]{0,63}", text) else fallback
 
+    @staticmethod
+    def _invalid_response() -> CorthexError:
+        return CorthexError("invalid_response", "Corthex returned an invalid response", 7)
+
+    @staticmethod
+    def _valid_error(error: object) -> bool:
+        return (
+            isinstance(error, dict)
+            and isinstance(error.get("code"), str)
+            and isinstance(error.get("message"), str)
+        )
+
     def request(self, method: str, path: str, payload: object | None = None) -> Any:
         body = None if payload is None else json.dumps(payload).encode("utf-8")
         request = Request(
@@ -63,15 +75,15 @@ class Client:
                 error_body = json.loads(exc.read().decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
                 error_body = {}
-            error = error_body.get("error", {}) if isinstance(error_body, dict) else {}
-            code = (
-                "authentication_failed"
-                if exc.code in {401, 403}
-                else self._safe_remote_code(error.get("code"), "remote_error")
-            )
-            fallback = "Authentication failed" if exc.code in {401, 403} else f"Corthex returned HTTP {exc.code}"
-            message = fallback if exc.code in {401, 403} else self._safe_remote_message(error.get("message"), fallback)
-            exit_code = 3 if exc.code in {401, 403} else 4 if exc.code == 404 else 5
+            if not isinstance(error_body, dict) or not self._valid_error(error_body.get("error")):
+                raise self._invalid_response() from exc
+            if exc.code in {401, 403}:
+                raise CorthexError("authentication_failed", "Authentication failed", 3) from exc
+            error = error_body["error"]
+            code = self._safe_remote_code(error.get("code"), "remote_error")
+            fallback = f"Corthex returned HTTP {exc.code}"
+            message = self._safe_remote_message(error.get("message"), fallback)
+            exit_code = 4 if exc.code == 404 else 5
             raise CorthexError(code, message, exit_code) from exc
         except (URLError, TimeoutError, socket.timeout, ConnectionError) as exc:
             raise CorthexError("connection_failed", "Unable to connect to Corthex", 6, True) from exc
@@ -79,14 +91,23 @@ class Client:
             raise CorthexError("invalid_response", "Corthex returned invalid JSON", 7) from exc
 
         if isinstance(raw, dict) and "ok" in raw:
-            if not raw.get("ok"):
-                error = raw.get("error") or {}
+            if not isinstance(raw["ok"], bool):
+                raise self._invalid_response()
+            if not raw["ok"]:
+                error = raw.get("error")
+                if not self._valid_error(error):
+                    raise self._invalid_response()
+                assert isinstance(error, dict)
                 raise CorthexError(
                     self._safe_remote_code(error.get("code"), "remote_error"),
                     self._safe_remote_message(error.get("message"), "Request failed"),
                     5,
                 )
-            return raw.get("data")
+            if "data" not in raw:
+                raise self._invalid_response()
+            return raw["data"]
+        if not isinstance(raw, (dict, list)):
+            raise self._invalid_response()
         return raw
 
     def status(self) -> Any:
