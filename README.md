@@ -18,10 +18,11 @@ Corthex uses [Hindsight](https://github.com/vectorize-io/hindsight) as its under
 
 ## What ships today
 
-This repository contains four working parts:
+This repository contains five working parts:
 
 - A dependency-free Python 3.10+ CLI for a compatible local or remote Corthex `/v1` gateway.
 - An authenticated `corthex-mcp-http` service exposing stateless MCP at `/mcp` and the CLI facade at `/v1`, plus windowless modern and Hermes-compatible stdio adapters.
+- A private Linux VPS deployment path that publishes only the authenticated Corthex facade through tailnet-only Tailscale Serve HTTPS.
 - Deterministic migration tools for combining existing Hindsight banks without deleting the sources.
 - The preserved Windows Cortex Brain baseline that Corthex is being generalized from.
 
@@ -58,6 +59,12 @@ corthex reflect "What communication preferences have been retained?"
 
 Use `corthex --json <command>` for machine-readable output. See the [CLI guide](docs/cli.md) for the complete command contract and exit codes.
 
+## Remote Brain
+
+The Linux VPS deployment runs one authoritative Corthex instance on loopback and publishes only its authenticated facade through tailnet-only Tailscale Serve HTTPS. Desktop clients can therefore connect without installing Hindsight, PostgreSQL, or a local model. Raw Hindsight and PostgreSQL remain unreachable through remote routes.
+
+The systemd unit uses a dedicated non-login account and bounded writable directories. Native PostgreSQL backup and empty-target restore scripts provide a reproducible recovery drill. See the [Remote Brain VPS runbook](docs/REMOTE_BRAIN_VPS.md) and [transport ADR](docs/adr/0001-remote-brain-transport.md).
+
 ## Memory and lifecycle
 
 Corthex is selective long-term memory, not a transcript recorder. The shipped baseline policy excludes raw conversations, assistant output, source files, logs, and tool output from routine retention. Client behavior remains explicit and model-dependent: Corthex does not silently scrape chats, and an AI client must be configured before it can use the memory bank.
@@ -68,7 +75,7 @@ The migration toolkit provides a fail-closed path to a shared `corthex` bank. It
 
 Corthex is early software, not a finished hosted service.
 
-The repository does not yet ship a general-purpose cross-platform server installer. The CLI needs a compatible `/v1` gateway, and each AI client still needs an adapter plus explicit configuration. The preserved Windows gateway uses one fixed bank; the per-client bank authorization, redaction, audit, and broader lifecycle controls in the [target architecture](docs/architecture.md) are design requirements, not shipped behavior.
+The repository ships a Linux VPS deployment path, not a general-purpose cross-platform server installer. The CLI needs a compatible `/v1` gateway, and each AI client still needs an adapter plus explicit configuration. The preserved Windows gateway uses one fixed bank; the per-client bank authorization, redaction, audit, and broader lifecycle controls in the [target architecture](docs/architecture.md) are design requirements, not shipped behavior.
 
 Local models and storage can reduce outside data flow, but they do not make a deployment private by themselves. Operators still choose the network boundary, retention policy, model providers, storage, and backup location.
 
@@ -77,6 +84,8 @@ Local models and storage can reduce outside data flow, but they do not make a de
 - [`docs/cli.md`](docs/cli.md): install, configure, and use the cross-platform client
 - [`docs/mcp.md`](docs/mcp.md): configure the authenticated HTTP service and stdio adapters
 - [`docs/adr/0001-mcp-2026-architecture.md`](docs/adr/0001-mcp-2026-architecture.md): pinned MCP 2026-07-28 protocol contract
+- [`docs/REMOTE_BRAIN_VPS.md`](docs/REMOTE_BRAIN_VPS.md): deploy and operate a private Remote Brain on Linux
+- [`docs/adr/0001-remote-brain-transport.md`](docs/adr/0001-remote-brain-transport.md): private transport decision and threat matrix
 - [`docs/UNIFIED_MEMORY.md`](docs/UNIFIED_MEMORY.md): migration, backup gates, verification, and rollback
 - [`docs/architecture.md`](docs/architecture.md): target trust boundaries and security invariants
 - [`docs/configuration.md`](docs/configuration.md): intended deployment configuration and validation
