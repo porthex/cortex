@@ -1,6 +1,30 @@
-# Cortex Brain
+# Corthex
 
-Cortex is a local shared-memory service for Codex/ChatGPT Desktop, Claude Desktop, and other MCP clients. Hindsight 0.8.4 stores the memories, PostgreSQL stores the bank, and Ollama runs `gpt-oss:20b` for extraction and reflection.
+Corthex is a shared-memory product for AI clients, powered by [Hindsight](https://github.com/vectorize-io/hindsight). This repository contains the existing Windows Cortex Brain baseline and the cross-platform Corthex client being generalized from it.
+
+## Cross-platform CLI
+
+The Python 3.10+ package exposes a dependency-free `corthex` command:
+
+```sh
+python -m pip install .
+corthex configure --url https://brain.example.ts.net --bank my-bank
+export CORTHEX_TOKEN='replace-with-client-token'
+corthex connect
+corthex doctor
+corthex retain "a durable fact"
+corthex recall "durable"
+corthex reflect "what matters?"
+corthex banks
+```
+
+Use `corthex --json <command>` for stable machine output. The CLI stores URL, bank, and timeout in the platform user config directory; bearer tokens come from `CORTHEX_TOKEN` or `connect --token-stdin` and are never persisted. Non-loopback URLs must use HTTPS. The client targets Corthex's authenticated public `/v1` facade and never calls raw Hindsight endpoints. See [the CLI guide](docs/cli.md) for the complete contract, exit codes, tests, and rollback.
+
+The one-service Remote Brain/MCP facade is delivered by the linked protocol and deployment work; until that service is installed, use the CLI only with a compatible Corthex `/v1` gateway.
+
+## Existing Windows Cortex Brain baseline
+
+The Windows baseline is a local shared-memory service for Codex/ChatGPT Desktop, Claude Desktop, and other MCP clients. Hindsight 0.8.4 stores the memories, PostgreSQL stores the bank, and Ollama runs `gpt-oss:20b` for extraction and reflection.
 
 > **Current baseline and Corthex protocol policy:** This repository currently ships the Windows Cortex baseline documented below. The public Corthex server is under active development; its MCP implementation is required to use the official stateless `2026-07-28` architecture and exact Python SDK `mcp==2.0.0` pin. The accepted compatibility contract and executable regression fixture are in [`docs/adr/0001-mcp-2026-architecture.md`](docs/adr/0001-mcp-2026-architecture.md) and [`tests/fixtures/mcp-2026-07-28-contract.json`](tests/fixtures/mcp-2026-07-28-contract.json). This policy does not claim that the existing legacy gateway already conforms.
 
