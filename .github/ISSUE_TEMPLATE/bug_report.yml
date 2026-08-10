@@ -1,0 +1,38 @@
+name: Bug report
+description: Report a reproducible defect using synthetic data only
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not submit vulnerabilities, secrets, real memories, personal data, or private infrastructure details here. Use the Security tab for vulnerability reports.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Provide minimal steps with synthetic inputs and redacted configuration.
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Corthex revision
+      placeholder: Commit SHA or release
+    validations:
+      required: true
+  - type: dropdown
+    id: data-check
+    attributes:
+      label: Sensitive data check
+      options:
+        - I confirm this report contains only synthetic or safely redacted data.
+    validations:
+      required: true
