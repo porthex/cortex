@@ -8,7 +8,22 @@
 
 Corthex keeps durable preferences, decisions, and context available across sessions without turning every transcript into permanent memory.
 
+## Useful from day one
+
+| Feature | What it gives you |
+| --- | --- |
+| One shared brain | Claude, Codex, desktop AI tools, and scripts can use the same memory bank instead of building isolated histories. |
+| Retain, recall, and reflect | Hindsight extracts durable facts, retrieves relevant context, and forms higher-level answers. |
+| MCP and CLI access | Use stateless Streamable HTTP, a windowless stdio adapter, or the cross-platform `corthex` command. |
+| Private Remote Brain | Run the authenticated facade on a VPS over tailnet-only HTTPS while raw Hindsight and PostgreSQL stay private. |
+| Selective, inspectable memory | Keep durable context rather than full transcripts, then inspect it in Hindsight's Memory Browser. |
+| Safe migration and recovery | Preserve source provenance, deduplicate deterministically, verify backups, restore, and roll back. |
+
 ## How it works
+
+<p align="center">
+  <img src="assets/corthex-shared-memory-flow.svg" width="1200" alt="Corthex shared memory architecture: AI clients connect through the authenticated Corthex gateway to Hindsight and PostgreSQL">
+</p>
 
 1. An AI client sends selected context through a Corthex client or adapter.
 2. An authenticated gateway passes approved memory operations to Hindsight.
@@ -60,6 +75,10 @@ corthex reflect "What communication preferences have been retained?"
 Use `corthex --json <command>` for machine-readable output. See the [CLI guide](docs/cli.md) for the complete command contract and exit codes.
 
 ## Remote Brain
+
+<p align="center">
+  <img src="assets/corthex-remote-brain.svg" width="1200" alt="Corthex Remote Brain architecture with private Tailscale transport and loopback-only Hindsight and PostgreSQL services">
+</p>
 
 The Linux VPS deployment runs one authoritative Corthex instance on loopback and publishes only its authenticated facade through tailnet-only Tailscale Serve HTTPS. The facade implements both the bundled CLI contract and MCP transport, so desktop clients can connect without installing Hindsight, PostgreSQL, or a local model. Raw Hindsight and PostgreSQL remain unreachable through remote routes.
 
