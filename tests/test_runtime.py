@@ -24,3 +24,16 @@ def test_http_runtime_rejects_missing_client_token(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="CORTHEX_MCP_TOKEN"):
         RuntimeConfig.from_environment(require_http_auth=True)
+
+
+@pytest.mark.parametrize(
+    "public_url",
+    ["/corthex/mcp", "https://user:pass@brain.example.invalid/corthex/mcp"],
+)
+def test_http_runtime_rejects_invalid_public_url(monkeypatch, public_url) -> None:
+    monkeypatch.setenv("CORTHEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
+    monkeypatch.setenv("CORTHEX_MCP_TOKEN", "client-secret")
+    monkeypatch.setenv("CORTHEX_MCP_PUBLIC_URL", public_url)
+
+    with pytest.raises(ValueError, match="CORTHEX_MCP_PUBLIC_URL"):
+        RuntimeConfig.from_environment(require_http_auth=True)
