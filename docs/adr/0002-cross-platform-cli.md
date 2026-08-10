@@ -1,15 +1,15 @@
-# ADR 0002: Cross-platform Corthex CLI
+# ADR 0002: Cross-platform Cortex CLI
 
 Status: Proposed for integration
 Date: 2026-08-10
 
 ## Context
 
-Corthex needs one operator/client command on Windows, macOS, and Linux. The CLI must address the public Corthex gateway rather than Hindsight's private API, keep bank selection explicit, support deterministic JSON automation, and avoid writing bearer tokens to project files or command history.
+Cortex needs one operator/client command on Windows, macOS, and Linux. The CLI must address the public Cortex gateway rather than Hindsight's private API, keep bank selection explicit, support deterministic JSON automation, and avoid writing bearer tokens to project files or command history.
 
 ## Decision
 
-Ship a Python 3.10+ distribution with a `corthex` console script and no runtime dependencies. Configuration is stored in the platform user config directory (or `CORTHEX_CONFIG`), while credentials come from `CORTHEX_TOKEN` or `--token-stdin`. The CLI never persists or prints a token.
+Ship a Python 3.10+ distribution with a `cortex` console script and no runtime dependencies. Configuration is stored in the platform user config directory (or `CORTEX_CONFIG`), while credentials come from `CORTEX_TOKEN` or `--token-stdin`. The CLI never persists or prints a token.
 
 The stable HTTP contract is rooted at `/v1`:
 

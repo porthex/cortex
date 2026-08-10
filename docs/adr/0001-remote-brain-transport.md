@@ -5,7 +5,7 @@ Date: 2026-08-10
 
 ## Context
 
-Corthex needs one authoritative VPS instance for desktop AI clients. Clients must not install Hindsight, PostgreSQL, or a local model. The raw Hindsight API and database must never become public. The existing host and intended clients already use Tailscale.
+Cortex needs one authoritative VPS instance for desktop AI clients. Clients must not install Hindsight, PostgreSQL, or a local model. The raw Hindsight API and database must never become public. The existing host and intended clients already use Tailscale.
 
 MCP's official transports are stdio and Streamable HTTP. For a remote server, Streamable HTTP requires a network security boundary; a local stdio adapter can forward clients that do not support remote HTTP. Tailscale provides encrypted WireGuard point-to-point transport and Tailscale Serve provides tailnet-only HTTPS to a loopback origin.
 
@@ -14,15 +14,15 @@ MCP's official transports are stdio and Streamable HTTP. For a remote server, St
 Use **Tailscale Serve** as the sole remote ingress:
 
 ```text
-remote client -> tailnet HTTPS -> Tailscale Serve /corthex
-              -> 127.0.0.1:8890 Corthex facade
+remote client -> tailnet HTTPS -> Tailscale Serve /cortex
+              -> 127.0.0.1:8890 Cortex facade
               -> 127.0.0.1:<internal> raw Hindsight
               -> loopback/private PostgreSQL
 ```
 
-The Corthex facade binds only to `127.0.0.1`, authenticates every request with an explicit bearer token, and enforces the allowed bank set. Tailscale Serve adds `/corthex` without replacing other handlers. Funnel is forbidden. The raw Hindsight API, its UI, PostgreSQL, and backup files are never Serve targets.
+The Cortex facade binds only to `127.0.0.1`, authenticates every request with an explicit bearer token, and enforces the allowed bank set. Tailscale Serve adds `/cortex` without replacing other handlers. Funnel is forbidden. The raw Hindsight API, its UI, PostgreSQL, and backup files are never Serve targets.
 
-The service runs under the dedicated `corthex` account. Code is root-owned under `/opt/corthex`; runtime state is limited to `/var/lib/corthex` and `/var/log/corthex`; secrets are in `/etc/corthex/corthex.env` with mode `0600`. Backups use a consistent PostgreSQL custom-format dump and restores require a separate empty target.
+The service runs under the dedicated `cortex` account. Code is root-owned under `/opt/cortex`; runtime state is limited to `/var/lib/cortex` and `/var/log/cortex`; secrets are in `/etc/cortex/cortex.env` with mode `0600`. Backups use a consistent PostgreSQL custom-format dump and restores require a separate empty target.
 
 ## Alternatives
 
@@ -42,7 +42,7 @@ A public hostname behind an identity proxy was rejected. MCP clients do not need
 
 | Threat or failure | Control | Required test |
 |---|---|---|
-| Internet reaches Corthex | loopback bind plus tailnet-only Serve; no Funnel | public-interface probe cannot reach 8890 |
+| Internet reaches Cortex | loopback bind plus tailnet-only Serve; no Funnel | public-interface probe cannot reach 8890 |
 | Internet reaches raw Hindsight or PostgreSQL | loopback/private binds; never Serve those ports | listener inventory and public probes show no exposure |
 | Non-tailnet client reaches service | Tailscale Serve | request from a device outside the tailnet is denied/unroutable |
 | Tailnet member lacks application authority | bearer token on every facade/MCP request | missing and wrong tokens return 401; correct token succeeds |

@@ -18,14 +18,14 @@ required=(
   THIRD_PARTY_NOTICES.md
   docs/architecture.md
   docs/configuration.md
-  config/corthex.example.yaml
+  config/cortex.example.yaml
 )
 
 for path in "${required[@]}"; do
   [[ -f "$path" ]] || fail "missing required file: $path"
 done
 
-# A Corthex license must be an explicit owner decision. Prevent an accidental
+# A Cortex license must be an explicit owner decision. Prevent an accidental
 # generic license file from implying a choice that has not been made.
 if [[ -e LICENSE || -e LICENSE.md || -e COPYING ]]; then
   fail "unexpected project license; confirm ownership and licensing intent first"

@@ -1,4 +1,4 @@
-"""Official MCP server exposing Corthex-owned memory contracts."""
+"""Official MCP server exposing Cortex-owned memory contracts."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def create_mcp_server(
     token_verifier=None,
     auth=None,
 ) -> MCPServer:
-    """Create one Corthex MCP server for either HTTP or stdio transport."""
+    """Create one Cortex MCP server for either HTTP or stdio transport."""
     banks = dict(allowed_banks)
     if not banks:
         raise ValueError("At least one allowed bank is required")
@@ -32,7 +32,7 @@ def create_mcp_server(
             await backend.close()
 
     server = MCPServer(
-        "Corthex",
+        "Cortex",
         description="Private, bank-scoped long-term memory for AI clients",
         token_verifier=token_verifier,
         auth=auth,
@@ -45,16 +45,16 @@ def create_mcp_server(
         return bank_id
 
     @server.tool(
-        name="corthex_retain",
-        description="Retain one durable fact in an explicitly allowed Corthex bank.",
+        name="cortex_retain",
+        description="Retain one durable fact in an explicitly allowed Cortex bank.",
         annotations=ToolAnnotations(destructiveHint=False, idempotentHint=False, openWorldHint=False),
     )
     async def retain(bank_id: str, content: str, context: str | None = None) -> RetainResult:
         return await backend.retain(require_bank(bank_id), content, context)
 
     @server.tool(
-        name="corthex_recall",
-        description="Recall relevant long-term memory from an explicitly allowed Corthex bank.",
+        name="cortex_recall",
+        description="Recall relevant long-term memory from an explicitly allowed Cortex bank.",
         annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False),
     )
     async def recall(bank_id: str, query: str, max_tokens: int = 4096) -> RecallResult:
@@ -63,16 +63,16 @@ def create_mcp_server(
         return await backend.recall(require_bank(bank_id), query, max_tokens)
 
     @server.tool(
-        name="corthex_reflect",
-        description="Synthesize an answer from one explicitly allowed Corthex bank.",
+        name="cortex_reflect",
+        description="Synthesize an answer from one explicitly allowed Cortex bank.",
         annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False),
     )
     async def reflect(bank_id: str, query: str, context: str | None = None) -> ReflectResult:
         return await backend.reflect(require_bank(bank_id), query, context)
 
     @server.tool(
-        name="corthex_banks",
-        description="List only the banks exposed by this Corthex service.",
+        name="cortex_banks",
+        description="List only the banks exposed by this Cortex service.",
         annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False),
     )
     async def list_banks() -> BanksResult:
@@ -81,9 +81,9 @@ def create_mcp_server(
         )
 
     @server.resource(
-        "corthex://banks/{bank_id}",
-        name="Corthex bank",
-        description="Public metadata for one allowed Corthex bank.",
+        "cortex://banks/{bank_id}",
+        name="Cortex bank",
+        description="Public metadata for one allowed Cortex bank.",
         mime_type="application/json",
     )
     async def bank_resource(bank_id: str) -> str:

@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from corthex.migration import (
-    CorthexError,
+from cortex.migration import (
+    CortexError,
     HindsightAPI,
     apply_items,
     build_retain_item,
@@ -53,9 +53,9 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(replayed["provenance"][0]["source_id"], "m-9")
 
     def test_normalize_fails_closed_without_source_or_content(self):
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             normalize_record({"text": "x"}, source="")
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             normalize_record({"id": "x"}, source="vps-hermes")
 
 
@@ -80,13 +80,13 @@ class DedupTests(unittest.TestCase):
     def test_dedup_rejects_provenance_identity_collision(self):
         a = normalize_record({"id": "same", "text": "Same fact", "fact_type": "world", "metadata": {"v": "1"}}, "source")
         b = normalize_record({"id": "same", "text": "same fact", "fact_type": "world", "metadata": {"v": "2"}}, "source")
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             deduplicate_records([a, b])
 
     def test_dedup_rejects_one_source_identity_with_different_content(self):
         a = normalize_record({"id": "same", "text": "Fact A", "fact_type": "world"}, "source")
         b = normalize_record({"id": "same", "text": "Fact B", "fact_type": "world"}, "source")
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             deduplicate_records([a, b])
 
     def test_retain_item_is_idempotent_and_serializes_provenance(self):
@@ -95,30 +95,30 @@ class DedupTests(unittest.TestCase):
             "vps-hermes",
         )
         item = build_retain_item(record)
-        self.assertTrue(item["document_id"].startswith("corthex-"))
+        self.assertTrue(item["document_id"].startswith("cortex-"))
         self.assertEqual(item["update_mode"], "replace")
         self.assertEqual(item["observation_scopes"], "shared")
-        provenance = json.loads(item["metadata"]["corthex_provenance"])
+        provenance = json.loads(item["metadata"]["cortex_provenance"])
         self.assertEqual(provenance[0]["source_id"], "m-1")
-        self.assertIn("corthex", item["tags"])
+        self.assertIn("cortex", item["tags"])
         self.assertEqual(validate_retain_item(item), {"vps-hermes"})
 
     def test_retain_plan_validation_rejects_tampering(self):
         record = normalize_record({"id": "m", "text": "Fact", "fact_type": "world"}, "vps-hermes")
         item = build_retain_item(record)
         item["content"] = "Tampered"
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             validate_retain_item(item)
 
 
 class APIPolicyTests(unittest.TestCase):
     def test_plain_http_is_allowed_only_on_loopback(self):
         HindsightAPI("http://127.0.0.1:9177")
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             HindsightAPI("http://100.64.0.2:9177", api_key="secret")
 
     def test_remote_https_requires_authentication(self):
-        with self.assertRaises(CorthexError):
+        with self.assertRaises(CortexError):
             HindsightAPI("https://memory.example.test")
         HindsightAPI("https://memory.example.test", api_key="secret")
 
@@ -129,7 +129,7 @@ class APIPolicyTests(unittest.TestCase):
             "https://memory.example.test?token=secret",
             "https://memory.example.test/#secret",
         ):
-            with self.subTest(url=url), self.assertRaises(CorthexError):
+            with self.subTest(url=url), self.assertRaises(CortexError):
                 HindsightAPI(url, api_key="separate-secret")
 
     def test_operational_policy_is_selective_and_defensive(self):
@@ -142,22 +142,22 @@ class APIPolicyTests(unittest.TestCase):
                 return payload
 
         api = RecordingAPI()
-        api.configure_operational("corthex")
+        api.configure_operational("cortex")
         method, path, payload = api.calls[-1]
-        self.assertEqual((method, path), ("PATCH", "/v1/default/banks/corthex/config"))
+        self.assertEqual((method, path), ("PATCH", "/v1/default/banks/cortex/config"))
         self.assertEqual(payload["updates"]["retain_extraction_mode"], "concise")
         self.assertTrue(payload["updates"]["memory_defense"]["enabled"])
         self.assertFalse(payload["updates"]["enable_observations"])
 
 
 class ApplyTests(unittest.TestCase):
-    def test_apply_refuses_every_non_corthex_bank(self):
+    def test_apply_refuses_every_non_cortex_bank(self):
         class FakeAPI:
-            def ensure_corthex_bank(self, bank):
+            def ensure_cortex_bank(self, bank):
                 raise AssertionError("must fail before API mutation")
 
-        for source_bank in ("hermes", "cortex", "other"):
-            with self.subTest(source_bank=source_bank), self.assertRaises(CorthexError):
+        for source_bank in ("hermes", "other"):
+            with self.subTest(source_bank=source_bank), self.assertRaises(CortexError):
                 apply_items(FakeAPI(), source_bank, [{"content": "x"}])
 
     def test_apply_batches_every_item_exactly_once(self):
@@ -166,7 +166,7 @@ class ApplyTests(unittest.TestCase):
                 self.banks = []
                 self.batches = []
 
-            def ensure_corthex_bank(self, bank):
+            def ensure_cortex_bank(self, bank):
                 self.banks.append(bank)
 
             def retain(self, bank, items):
@@ -174,23 +174,23 @@ class ApplyTests(unittest.TestCase):
 
         api = FakeAPI()
         items = [{"content": str(i)} for i in range(53)]
-        apply_items(api, "corthex", items, workers=4, batch_size=25)
-        self.assertEqual(api.banks, ["corthex"])
+        apply_items(api, "cortex", items, workers=4, batch_size=25)
+        self.assertEqual(api.banks, ["cortex"])
         self.assertEqual(sorted(i["content"] for _, batch in api.batches for i in batch), sorted(i["content"] for i in items))
-        self.assertTrue(all(bank == "corthex" and len(batch) <= 25 for bank, batch in api.batches))
+        self.assertTrue(all(bank == "cortex" and len(batch) <= 25 for bank, batch in api.batches))
 
 
 class HermesConfigTests(unittest.TestCase):
-    def test_update_is_atomic_reversible_and_brands_the_corthex_bank(self):
+    def test_update_is_atomic_reversible_and_brands_the_cortex_bank(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "config.json"
             original = {"mode": "local_embedded", "bank_id": "hermes", "retain_source": "hermes-agent"}
             path.write_text(json.dumps(original))
             backup = update_hermes_config(path)
             updated = json.loads(path.read_text())
-            self.assertEqual(updated["bank_id"], "corthex")
-            self.assertEqual(updated["retain_source"], "corthex-hermes")
-            self.assertIn("Corthex", updated["bank_mission"])
+            self.assertEqual(updated["bank_id"], "cortex")
+            self.assertEqual(updated["retain_source"], "cortex-hermes")
+            self.assertIn("Cortex", updated["bank_mission"])
             self.assertEqual(json.loads(backup.read_text()), original)
             rollback_hermes_config(path, backup)
             self.assertEqual(json.loads(path.read_text()), original)
@@ -208,14 +208,14 @@ class HermesConfigTests(unittest.TestCase):
             path.write_text(json.dumps({"bank_id": "hermes"}))
             backup = update_hermes_config(path)
             backup.write_text(json.dumps({"bank_id": "hermes", "tampered": True}))
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 rollback_hermes_config(path, backup)
 
     def test_update_fails_closed_if_source_bank_is_unexpected(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "config.json"
             path.write_text(json.dumps({"bank_id": "some-other-bank"}))
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 update_hermes_config(path)
 
 
@@ -253,7 +253,7 @@ class FileSafetyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             p = Path(td) / "bad.jsonl"
             p.write_text('{"id":"ok","text":"x"}\nnot-json\n')
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 load_jsonl(p, "source")
 
     def test_manifest_accepts_windows_powershell_utf8_bom(self):
@@ -272,7 +272,7 @@ class FileSafetyTests(unittest.TestCase):
             (root / "SHA256SUMS.json").write_text(json.dumps(manifest))
             verify_backup_manifest(root / "SHA256SUMS.json", expected_source="vps-hermes")
             (root / "memories.jsonl").write_bytes(b"tampered\n")
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 verify_backup_manifest(root / "SHA256SUMS.json")
 
     def test_manifest_rejects_empty_missing_or_relabelled_artifacts(self):
@@ -280,18 +280,18 @@ class FileSafetyTests(unittest.TestCase):
             root = Path(td)
             path = root / "SHA256SUMS.json"
             path.write_text(json.dumps({"schema_version": 1, "files": []}))
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 verify_backup_manifest(path, expected_source="vps-hermes")
 
             manifest = self._manifest_for(root)
             manifest["required_artifacts"].pop("full_backend_backup")
             path.write_text(json.dumps(manifest))
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 verify_backup_manifest(path, expected_source="vps-hermes")
 
             manifest = self._manifest_for(root, migration_source="windows-cortex")
             path.write_text(json.dumps(manifest))
-            with self.assertRaises(CorthexError):
+            with self.assertRaises(CortexError):
                 verify_backup_manifest(path, expected_source="vps-hermes")
 
 

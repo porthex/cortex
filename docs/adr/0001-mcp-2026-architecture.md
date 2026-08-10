@@ -1,27 +1,27 @@
-# ADR 0001: Pin Corthex to MCP 2026-07-28 stateless architecture
+# ADR 0001: Pin Cortex to MCP 2026-07-28 stateless architecture
 
 Status: Accepted
 Date: 2026-08-10
-Decision owners: Corthex MCP maintainers
+Decision owners: Cortex MCP maintainers
 
 ## Decision
 
-Corthex implements the official stable MCP protocol revision `2026-07-28` as its core wire architecture. Each request is self-contained: the server derives protocol version and client capabilities from that request, never from an earlier request, connection, process, or HTTP session.[1][2][3]
+Cortex implements the official stable MCP protocol revision `2026-07-28` as its core wire architecture. Each request is self-contained: the server derives protocol version and client capabilities from that request, never from an earlier request, connection, process, or HTTP session.[1][2][3]
 
 The implementation language is Python 3.10+ and the protocol dependency is pinned exactly to official Python SDK `mcp==2.0.0` (or `mcp[cli]==2.0.0` when the CLI extra is required), with transitive dependencies locked. SDK v2 is the current stable line and explicitly supports MCP `2026-07-28` and earlier revisions.[12][13] Do not use `mcp>=2,<3`, an unpinned Git branch, or `main`.
 
-Corthex supports the two standard transports:
+Cortex supports the two standard transports:
 
 - Streamable HTTP for remote clients.
 - A windowless stdio adapter for clients that require subprocess transport.
 
 Legacy initialization-based behavior is not the core. A bounded dual-era adapter may be added only for a named, tested client that demonstrably requires an official legacy revision. Modern traffic must remain stateless even when legacy support is enabled.[4][5]
 
-No experimental extension is in Corthex's required surface. Extensions are opt-in capability entries and must fall back to core behavior or reject when the peer did not negotiate them.[4]
+No experimental extension is in Cortex's required surface. Extensions are opt-in capability entries and must fall back to core behavior or reject when the peer did not negotiate them.[4]
 
 ## Compatibility matrix
 
-| Concern | Modern core (`2026-07-28`) | Legacy (`2025-11-25` and earlier) | Corthex rule |
+| Concern | Modern core (`2026-07-28`) | Legacy (`2025-11-25` and earlier) | Cortex rule |
 |---|---|---|---|
 | Lifecycle | No negotiation handshake; each request is accepted/rejected independently | `initialize` then `notifications/initialized` | Modern only by default |
 | Version | `_meta.io.modelcontextprotocol/protocolVersion` on every request | Negotiated during `initialize`; later HTTP header | Body field is authoritative; HTTP header must match |
@@ -45,7 +45,7 @@ Era classification may be cached by stdio process or HTTP origin.[4]
 
 - Every MCP message MUST be UTF-8 JSON-RPC 2.0. Request IDs are string or integer, non-null, and unique while in flight. Responses carry the same ID when readable. Notifications have no ID and receive no response.[3][5]
 - Result responses MUST include `resultType`; ordinary completion is `complete`, while MRTR uses `input_required`. Clients MUST treat absent `resultType` from an earlier-version server as `complete`.[3][11]
-- General failures use JSON-RPC codes `-32700` and `-32600` through `-32603`. MCP reserves `-32020` through `-32099`; Corthex must use only specified meanings: `HeaderMismatch=-32020`, `MissingRequiredClientCapability=-32021`, and `UnsupportedProtocolVersion=-32022`.[3]
+- General failures use JSON-RPC codes `-32700` and `-32600` through `-32603`. MCP reserves `-32020` through `-32099`; Cortex must use only specified meanings: `HeaderMismatch=-32020`, `MissingRequiredClientCapability=-32021`, and `UnsupportedProtocolVersion=-32022`.[3]
 - Modern servers do not initiate JSON-RPC requests and clients do not send JSON-RPC responses. Server input needs use MRTR; notifications are the only permitted unsolicited message shape.[5][11]
 
 ### Per-request metadata and versioning
@@ -103,7 +103,7 @@ For protected HTTP deployments:
 - Clients MUST send the RFC 8707 `resource` parameter. Servers MUST validate the token is intended for themselves and MUST NOT pass the inbound token through to an upstream API.[10]
 - Clients MUST implement PKCE, verify advertised PKCE support, use `S256` when capable, validate redirect URIs/state, bind credentials to the authorization-server issuer, and reject issuer mismatches.[10]
 
-Corthex's initial private-network static bearer deployment is a narrower product choice, not an OAuth claim.
+Cortex's initial private-network static bearer deployment is a narrower product choice, not an OAuth claim.
 It still requires a token on every request, constant-time validation, no query-string credentials, wrong-token denial, and bank authorization independent of self-reported MCP identity.[9][10]
 If public OAuth discovery is advertised, all normative OAuth requirements above become part of acceptance.[9][10]
 
@@ -127,7 +127,7 @@ Inspector 2.1.0 independently exercises modern/legacy era selection, so it is an
 ## Consequences
 
 - Stateless means no implicit protocol context, not “no state anywhere.” Authentication state, in-flight work, caches, subscriptions, and application handles remain valid when explicitly scoped and referenced.[3]
-- Existing `CortexMcpStdioBridge.cs` is legacy architecture: it learns protocol version from `initialize`, stores `Mcp-Session-Id`, and reuses both on later HTTP requests. It remains migration evidence only and must not be the Corthex core.
+- Existing `CortexMcpStdioBridge.cs` is legacy architecture: it learns protocol version from `initialize`, stores `Mcp-Session-Id`, and reuses both on later HTTP requests. It remains migration evidence only and must not be the Cortex core.
 - SDK convenience APIs are accepted only when black-box transport tests prove they emit the pinned wire contract.
 
 ## Sources

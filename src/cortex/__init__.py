@@ -1,4 +1,4 @@
-"""Public Corthex Python client, MCP server, and command-line interface."""
+"""Public Cortex Python client, MCP server, and command-line interface."""
 
 from .contracts import MemoryBackend
 from .mcp_server import create_mcp_server

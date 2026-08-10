@@ -12,7 +12,7 @@ TARGET_DATABASE_URL=$2
 [[ $3 == --confirm-empty-target ]] || usage
 [[ -r "$ARCHIVE" ]] || { echo "Archive is not readable: $ARCHIVE" >&2; exit 2; }
 
-ENV_FILE=${CORTHEX_BACKUP_ENV_FILE:-/etc/corthex/backup.env}
+ENV_FILE=${CORTEX_BACKUP_ENV_FILE:-/etc/cortex/backup.env}
 PG_RESTORE=${PG_RESTORE:-pg_restore}
 PSQL=${PSQL:-psql}
 SOURCE_DATABASE_URL=""
@@ -20,7 +20,7 @@ if [[ -r "$ENV_FILE" ]]; then
   SOURCE_DATABASE_URL=$(python3 - "$ENV_FILE" <<'PY'
 import sys
 for line in open(sys.argv[1], encoding="utf-8"):
-    if line.startswith("CORTHEX_DATABASE_URL="):
+    if line.startswith("CORTEX_DATABASE_URL="):
         print(line.split("=", 1)[1].rstrip("\n"))
         break
 PY

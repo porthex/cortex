@@ -1,8 +1,8 @@
 # Active MCP worker contract review — 2026-08-10
 
-Candidate reviewed: Kanban task `t_68efcb13`, branch `feature/corthex-mcp-server-adapters`, dirty/uncommitted snapshot.
+Candidate reviewed: Kanban task `t_68efcb13`, branch `feature/cortex-mcp-server-adapters`, dirty/uncommitted snapshot.
 
-Verdict: NO-COMMIT for MCP 2026 architecture acceptance. The Corthex tool surface and bank allow-list are a useful foundation, but the snapshot does not yet prove the required wire architecture.
+Verdict: NO-COMMIT for MCP 2026 architecture acceptance. The Cortex tool surface and bank allow-list are a useful foundation, but the snapshot does not yet prove the required wire architecture.
 
 ## Blocking findings
 
@@ -14,7 +14,7 @@ Verdict: NO-COMMIT for MCP 2026 architecture acceptance. The Corthex tool surfac
 
 ## Independent execution
 
-Running the worker venv's full pytest command from its workspace exited 2 during collection because `corthex` was not importable. This may reflect an incomplete editable install while the worker was still active, but it is not passing evidence.
+Running the worker venv's full pytest command from its workspace exited 2 during collection because `cortex` was not importable. This may reflect an incomplete editable install while the worker was still active, but it is not passing evidence.
 
 ## Required remediation
 

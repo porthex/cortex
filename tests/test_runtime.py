@@ -1,14 +1,14 @@
 import pytest
 
-from corthex.runtime import RuntimeConfig
+from cortex.runtime import RuntimeConfig
 
 
 def test_runtime_config_reads_public_environment_contract(monkeypatch) -> None:
-    monkeypatch.setenv("CORTHEX_HINDSIGHT_URL", "http://127.0.0.1:8888")
-    monkeypatch.setenv("CORTHEX_HINDSIGHT_API_KEY", "upstream-secret")
-    monkeypatch.setenv("CORTHEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
-    monkeypatch.setenv("CORTHEX_MCP_TOKEN", "client-secret")
-    monkeypatch.setenv("CORTHEX_MCP_PUBLIC_URL", "https://brain.example.invalid/mcp")
+    monkeypatch.setenv("CORTEX_HINDSIGHT_URL", "http://127.0.0.1:8888")
+    monkeypatch.setenv("CORTEX_HINDSIGHT_API_KEY", "upstream-secret")
+    monkeypatch.setenv("CORTEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
+    monkeypatch.setenv("CORTEX_MCP_TOKEN", "client-secret")
+    monkeypatch.setenv("CORTEX_MCP_PUBLIC_URL", "https://brain.example.invalid/mcp")
 
     config = RuntimeConfig.from_environment(require_http_auth=True)
 
@@ -19,21 +19,21 @@ def test_runtime_config_reads_public_environment_contract(monkeypatch) -> None:
 
 
 def test_http_runtime_rejects_missing_client_token(monkeypatch) -> None:
-    monkeypatch.setenv("CORTHEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
-    monkeypatch.delenv("CORTHEX_MCP_TOKEN", raising=False)
+    monkeypatch.setenv("CORTEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
+    monkeypatch.delenv("CORTEX_MCP_TOKEN", raising=False)
 
-    with pytest.raises(ValueError, match="CORTHEX_MCP_TOKEN"):
+    with pytest.raises(ValueError, match="CORTEX_MCP_TOKEN"):
         RuntimeConfig.from_environment(require_http_auth=True)
 
 
 @pytest.mark.parametrize(
     "public_url",
-    ["/corthex/mcp", "https://user:pass@brain.example.invalid/corthex/mcp"],
+    ["/cortex/mcp", "https://user:pass@brain.example.invalid/cortex/mcp"],
 )
 def test_http_runtime_rejects_invalid_public_url(monkeypatch, public_url) -> None:
-    monkeypatch.setenv("CORTHEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
-    monkeypatch.setenv("CORTHEX_MCP_TOKEN", "client-secret")
-    monkeypatch.setenv("CORTHEX_MCP_PUBLIC_URL", public_url)
+    monkeypatch.setenv("CORTEX_BANKS_JSON", '{"test-bank":"Isolated bank"}')
+    monkeypatch.setenv("CORTEX_MCP_TOKEN", "client-secret")
+    monkeypatch.setenv("CORTEX_MCP_PUBLIC_URL", public_url)
 
-    with pytest.raises(ValueError, match="CORTHEX_MCP_PUBLIC_URL"):
+    with pytest.raises(ValueError, match="CORTEX_MCP_PUBLIC_URL"):
         RuntimeConfig.from_environment(require_http_auth=True)

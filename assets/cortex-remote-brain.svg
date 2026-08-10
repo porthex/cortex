@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 660" role="img" aria-labelledby="title desc">
+  <title id="title">Cortex Remote Brain private deployment</title>
+  <desc id="desc">Desktop clients connect through private Tailscale HTTPS to an authenticated loopback-only Cortex service. Raw Hindsight and PostgreSQL remain private, with backup and restore controlled by the operator.</desc>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050607"/><stop offset="1" stop-color="#0d1012"/></linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#6d757b"/><stop offset=".5" stop-color="#e5e2da"/><stop offset="1" stop-color="#6d757b"/></linearGradient>
+    <pattern id="grid2" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#24292d" stroke-width="1" opacity=".28"/></pattern>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity=".5"/></filter>
+    <marker id="arr2" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1l9 5-9 5z" fill="#bbc0c3"/></marker>
+    <style>
+      .ey{font:600 13px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:3px;fill:#858d92}
+      .ttl{font:600 38px Inter,Arial,sans-serif;fill:#f1efe9}.sub{font:400 17px Inter,Arial,sans-serif;fill:#9ea5aa}
+      .lab{font:600 18px Inter,Arial,sans-serif;fill:#ebe9e3}.sm{font:400 13px Inter,Arial,sans-serif;fill:#969da2}.mi{font:600 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1px;fill:#bbb7ac}
+      .box{fill:#111416;stroke:#42494e;stroke-width:1.5}.core{fill:#181c1f;stroke:#7b848a;stroke-width:1.6}.f{fill:none;stroke:#b8bdc0;stroke-width:2;marker-end:url(#arr2)}.d{fill:none;stroke:#686f74;stroke-width:1.4;stroke-dasharray:6 7;marker-end:url(#arr2)}
+    </style>
+  </defs>
+  <rect width="1600" height="660" rx="28" fill="url(#bg2)"/><rect width="1600" height="660" rx="28" fill="url(#grid2)"/><rect x="1" y="1" width="1598" height="658" rx="27" fill="none" stroke="#2c3135" stroke-width="2"/>
+  <text x="68" y="64" class="ey">CORTEX / REMOTE BRAIN</text><text x="68" y="112" class="ttl">A private brain, not a public database.</text><text x="68" y="145" class="sub">Desktop clients carry only an adapter or CLI. Durable storage stays behind the authenticated service boundary.</text>
+
+  <path d="M308 298 H472" class="f"/><path d="M308 428 C380 428 405 345 472 345" class="f"/>
+
+  <g filter="url(#sh)"><rect x="68" y="240" width="240" height="116" rx="16" class="box"/><text x="188" y="278" text-anchor="middle" class="ey">DESKTOP</text><text x="188" y="313" text-anchor="middle" class="lab">AI clients</text><text x="188" y="338" text-anchor="middle" class="sm">Claude · Codex · tools</text>
+  <rect x="68" y="386" width="240" height="92" rx="16" class="box"/><text x="188" y="422" text-anchor="middle" class="lab">Cortex CLI</text><text x="188" y="449" text-anchor="middle" class="sm">human + JSON output</text></g>
+
+  <g filter="url(#sh)"><rect x="472" y="238" width="262" height="220" rx="20" class="core"/><text x="603" y="278" text-anchor="middle" class="ey">PRIVATE TRANSPORT</text><path d="M524 315h158" stroke="url(#line)" stroke-width="3"/><text x="603" y="355" text-anchor="middle" class="lab">Tailscale HTTPS</text><text x="603" y="383" text-anchor="middle" class="sm">tailnet only · encrypted transit</text><text x="603" y="408" text-anchor="middle" class="sm">application bearer token</text><rect x="533" y="427" width="140" height="24" rx="12" fill="#252a2e"/><text x="603" y="443" text-anchor="middle" class="mi">NO PUBLIC PORT</text></g>
+
+  <rect x="818" y="196" width="706" height="292" rx="24" fill="#090b0d" stroke="#4e565b" stroke-width="1.7" stroke-dasharray="8 7"/>
+  <text x="850" y="225" class="ey">VPS / LOOPBACK-ONLY SERVICES</text>
+  <path d="M734 324 H858" class="f"/><path d="M1126 324 H1240" class="f"/>
+  <path d="M991 448 V510" class="d"/><path d="M1368 448 V510" class="d"/>
+  <g filter="url(#sh)"><rect x="858" y="258" width="268" height="190" rx="18" class="core"/><text x="992" y="297" text-anchor="middle" class="ey">PUBLIC FACADE</text><text x="992" y="338" text-anchor="middle" class="lab">Cortex gateway</text><text x="992" y="367" text-anchor="middle" class="sm">/mcp · /v1 · /health</text><text x="992" y="393" text-anchor="middle" class="sm">auth · allowed banks · validation</text><rect x="915" y="417" width="154" height="3" rx="2" fill="url(#line)"/>
+  <rect x="1240" y="258" width="238" height="190" rx="18" class="box"/><text x="1359" y="297" text-anchor="middle" class="ey">MEMORY CORE</text><text x="1359" y="338" text-anchor="middle" class="lab">Hindsight</text><text x="1359" y="367" text-anchor="middle" class="sm">semantic memory engine</text><text x="1359" y="393" text-anchor="middle" class="sm">never exposed directly</text></g>
+
+  <g><rect x="858" y="510" width="268" height="86" rx="14" class="box"/><text x="992" y="544" text-anchor="middle" class="lab">Service account</text><text x="992" y="570" text-anchor="middle" class="sm">bounded files · transactional rollback</text>
+  <rect x="1240" y="510" width="238" height="86" rx="14" class="box"/><text x="1359" y="544" text-anchor="middle" class="lab">PostgreSQL</text><text x="1359" y="570" text-anchor="middle" class="sm">vectors · metadata · backups</text></g>
+
+  <text x="1528" y="622" text-anchor="end" class="ey">RAW HINDSIGHT + POSTGRESQL STAY PRIVATE</text>
+</svg>

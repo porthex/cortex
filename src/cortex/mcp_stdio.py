@@ -1,4 +1,4 @@
-"""Windowless stdio launcher for Corthex MCP.
+"""Windowless stdio launcher for Cortex MCP.
 
 Stdout is reserved for newline-delimited MCP messages; diagnostics use stderr.
 """
@@ -27,7 +27,7 @@ async def run_modern_stdio(server) -> None:
 
     The exact-pinned SDK exposes its modern loop internally but its convenience
     runner is dual-era. This narrow adapter intentionally selects the modern
-    loop so legacy initialize cannot silently become Corthex's core.
+    loop so legacy initialize cannot silently become Cortex's core.
     """
     lowlevel = server._lowlevel_server
     async with stdio_server() as (read_stream, write_stream):

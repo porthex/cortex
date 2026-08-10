@@ -27,23 +27,23 @@ async def test_real_stdio_subprocess_discovers_and_runs_memory_flow() -> None:
     async with Client(stdio_client(parameters), raise_exceptions=True) as client:
         tools = await client.list_tools()
         retained = await client.call_tool(
-            "corthex_retain",
+            "cortex_retain",
             {"bank_id": "test-bank", "content": "Subprocess memory"},
         )
         recalled = await client.call_tool(
-            "corthex_recall",
+            "cortex_recall",
             {"bank_id": "test-bank", "query": "memory"},
         )
         reflected = await client.call_tool(
-            "corthex_reflect",
+            "cortex_reflect",
             {"bank_id": "test-bank", "query": "meaning"},
         )
 
     assert {tool.name for tool in tools.tools} == {
-        "corthex_banks",
-        "corthex_recall",
-        "corthex_reflect",
-        "corthex_retain",
+        "cortex_banks",
+        "cortex_recall",
+        "cortex_reflect",
+        "cortex_retain",
     }
     assert retained.structured_content == {"accepted": True, "operation_id": "fixture-1"}
     assert recalled.structured_content["text"] == "Subprocess memory"
@@ -130,7 +130,7 @@ async def test_real_stdio_cancelled_notification_cancels_in_flight_tool(tmp_path
     root = Path(__file__).resolve().parents[1]
     environment = dict(os.environ)
     environment["PYTHONPATH"] = str(root / "src")
-    environment["CORTHEX_CANCELLATION_MARKER_DIR"] = str(tmp_path)
+    environment["CORTEX_CANCELLATION_MARKER_DIR"] = str(tmp_path)
     process = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
@@ -159,7 +159,7 @@ async def test_real_stdio_cancelled_notification_cancels_in_flight_tool(tmp_path
             "id": "cancel-stdio",
             "method": "tools/call",
             "params": {
-                "name": "corthex_recall",
+                "name": "cortex_recall",
                 "arguments": {"bank_id": "test-bank", "query": "wait-for-cancellation"},
                 "_meta": meta,
             },
@@ -191,7 +191,7 @@ async def test_real_stdio_cancelled_notification_cancels_in_flight_tool(tmp_path
             "jsonrpc": "2.0",
             "id": "after-cancel",
             "method": "tools/call",
-            "params": {"name": "corthex_banks", "arguments": {}, "_meta": meta},
+            "params": {"name": "cortex_banks", "arguments": {}, "_meta": meta},
         }
     )
     await stdin.drain()

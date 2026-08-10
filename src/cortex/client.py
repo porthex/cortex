@@ -12,7 +12,7 @@ from .config import Config
 
 
 @dataclass
-class CorthexError(Exception):
+class CortexError(Exception):
     code: str
     message: str
     exit_code: int
@@ -25,7 +25,7 @@ class CorthexError(Exception):
 class Client:
     def __init__(self, config: Config, token: str) -> None:
         if not token:
-            raise CorthexError("missing_credentials", "CORTHEX_TOKEN is not set", 3)
+            raise CortexError("missing_credentials", "CORTEX_TOKEN is not set", 3)
         self.config = config
         self._token = token
 
@@ -43,8 +43,8 @@ class Client:
         return text if re.fullmatch(r"[a-z][a-z0-9_]{0,63}", text) else fallback
 
     @staticmethod
-    def _invalid_response() -> CorthexError:
-        return CorthexError("invalid_response", "Corthex returned an invalid response", 7)
+    def _invalid_response() -> CortexError:
+        return CortexError("invalid_response", "Cortex returned an invalid response", 7)
 
     @staticmethod
     def _valid_error(error: object) -> bool:
@@ -64,7 +64,7 @@ class Client:
                 "Accept": "application/json",
                 "Authorization": f"Bearer {self._token}",
                 "Content-Type": "application/json",
-                "User-Agent": "corthex-cli/0.1.0",
+                "User-Agent": "cortex-cli/0.1.0",
             },
         )
         try:
@@ -78,17 +78,17 @@ class Client:
             if not isinstance(error_body, dict) or not self._valid_error(error_body.get("error")):
                 raise self._invalid_response() from exc
             if exc.code in {401, 403}:
-                raise CorthexError("authentication_failed", "Authentication failed", 3) from exc
+                raise CortexError("authentication_failed", "Authentication failed", 3) from exc
             error = error_body["error"]
             code = self._safe_remote_code(error.get("code"), "remote_error")
-            fallback = f"Corthex returned HTTP {exc.code}"
+            fallback = f"Cortex returned HTTP {exc.code}"
             message = self._safe_remote_message(error.get("message"), fallback)
             exit_code = 4 if exc.code == 404 else 5
-            raise CorthexError(code, message, exit_code) from exc
+            raise CortexError(code, message, exit_code) from exc
         except (URLError, TimeoutError, socket.timeout, ConnectionError) as exc:
-            raise CorthexError("connection_failed", "Unable to connect to Corthex", 6, True) from exc
+            raise CortexError("connection_failed", "Unable to connect to Cortex", 6, True) from exc
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise CorthexError("invalid_response", "Corthex returned invalid JSON", 7) from exc
+            raise CortexError("invalid_response", "Cortex returned invalid JSON", 7) from exc
 
         if isinstance(raw, dict) and "ok" in raw:
             if not isinstance(raw["ok"], bool):
@@ -98,7 +98,7 @@ class Client:
                 if not self._valid_error(error):
                     raise self._invalid_response()
                 assert isinstance(error, dict)
-                raise CorthexError(
+                raise CortexError(
                     self._safe_remote_code(error.get("code"), "remote_error"),
                     self._safe_remote_message(error.get("message"), "Request failed"),
                     5,

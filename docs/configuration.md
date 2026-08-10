@@ -1,6 +1,6 @@
 # Configuration guide
 
-[`config/corthex.example.yaml`](../config/corthex.example.yaml) documents the intended configuration surface. It is an architecture example, not a claim that every key is already implemented.
+[`config/cortex.example.yaml`](../config/cortex.example.yaml) documents the intended configuration surface. It is an architecture example, not a claim that every key is already implemented.
 
 ## Rules
 
@@ -22,10 +22,10 @@ A deployment may map placeholders to its own secret mechanism. Suggested variabl
 
 | Placeholder | Purpose | Secret |
 | --- | --- | --- |
-| `CORTHEX_DATABASE_URL` | Hindsight storage connection | Yes |
-| `CORTHEX_GATEWAY_TOKEN` | Example client authentication material | Yes |
-| `CORTHEX_MODEL_API_KEY` | Optional remote model credential | Yes |
-| `CORTHEX_BACKUP_KEY` | Backup encryption material | Yes |
+| `CORTEX_DATABASE_URL` | Hindsight storage connection | Yes |
+| `CORTEX_GATEWAY_TOKEN` | Example client authentication material | Yes |
+| `CORTEX_MODEL_API_KEY` | Optional remote model credential | Yes |
+| `CORTEX_BACKUP_KEY` | Backup encryption material | Yes |
 
 Do not print resolved configuration in CI, logs, support bundles, or diagnostic output.
 
