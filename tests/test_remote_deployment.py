@@ -19,6 +19,50 @@ class RemoteDeploymentContractTests(unittest.TestCase):
     def read(self, relative: str) -> str:
         return (ROOT / relative).read_text(encoding="utf-8")
 
+    def run_backup(
+        self,
+        root: Path,
+        path_scripts: dict[str, str],
+        *,
+        embedded_home: Path | None = None,
+        embedded_script: str | None = None,
+        extra_env: dict[str, str] | None = None,
+        database_url: str = "postgresql://secret@example.invalid/cortex",
+    ) -> tuple[subprocess.CompletedProcess[str], Path]:
+        path_bin = root / "bin"
+        path_bin.mkdir()
+        for name, contents in path_scripts.items():
+            executable = path_bin / name
+            executable.write_text(contents, encoding="utf-8")
+            executable.chmod(0o755)
+        if embedded_home is not None and embedded_script is not None:
+            embedded_dump = embedded_home / ".pg0/installation/18.1.0/bin/pg_dump"
+            embedded_dump.parent.mkdir(parents=True)
+            embedded_dump.write_text(embedded_script, encoding="utf-8")
+            embedded_dump.chmod(0o755)
+        env_file = root / "backup.env"
+        env_file.write_text(f"CORTEX_DATABASE_URL={database_url}\n", encoding="utf-8")
+        backups = root / "backups"
+        env = dict(os.environ)
+        env.pop("PG_DUMP", None)
+        env.pop("SUDO_USER", None)
+        env.update(
+            {
+                "HOME": str(root),
+                "PATH": f"{path_bin}:/usr/bin:/bin",
+                "CORTEX_BACKUP_ENV_FILE": str(env_file),
+                "CORTEX_BACKUP_DIR": str(backups),
+                **(extra_env or {}),
+            }
+        )
+        completed = subprocess.run(
+            ["bash", str(ROOT / "deploy/backup.sh")],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        return completed, backups
+
     def test_systemd_unit_is_loopback_only_and_least_privilege(self) -> None:
         unit = self.read("deploy/cortex-remote.service")
         self.assertIn("User=cortex", unit)
@@ -184,12 +228,172 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertIn("--format=custom", backup)
         self.assertIn("chmod 0600", backup)
         self.assertNotIn("set -x", backup)
+        self.assertNotIn('--dbname="$DATABASE_URL"', backup)
+        self.assertIn("sudo --preserve-env=PGDATABASE", backup)
+        self.assertIn("SELECTED_AS_SUDO_USER", backup)
         self.assertIn("pg_restore", restore)
         self.assertIn("--exit-on-error", restore)
         self.assertIn("--single-transaction", restore)
         self.assertIn('sha256sum "$ARCHIVE"', restore)
         self.assertIn("--confirm-empty-target", restore)
         self.assertNotIn("set -x", restore)
+
+    def test_backup_selects_matching_embedded_pg_dump_over_older_path_client(self) -> None:
+        old_dump = (
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 16.14'; exit; fi\n"
+            "exit 91\n"
+        )
+        embedded_dump = (
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 18.1'; exit; fi\n"
+            "printf archive\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            completed, backups = self.run_backup(
+                root,
+                {"psql": "#!/bin/sh\nprintf '180001\n'\n", "pg_dump": old_dump},
+                embedded_home=root,
+                embedded_script=embedded_dump,
+            )
+            archives = list(backups.glob("*.dump"))
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertEqual(1, len(archives))
+            self.assertEqual(b"archive", archives[0].read_bytes())
+            self.assertNotIn("secret", completed.stdout + completed.stderr)
+
+    def test_backup_finds_pg0_client_in_sudo_users_home(self) -> None:
+        embedded_dump = (
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 18.1'; exit; fi\n"
+            "printf archive\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sudo_home = root / "home/hermes"
+            completed, backups = self.run_backup(
+                root,
+                {
+                    "psql": "#!/bin/sh\nprintf '180001\n'\n",
+                    "pg_dump": (
+                        "#!/bin/sh\n"
+                        "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 16.14'; exit; fi\n"
+                        "exit 91\n"
+                    ),
+                    "getent": f"#!/bin/sh\nprintf 'hermes:x:1000:1000::%s:/bin/bash\n' '{sudo_home}'\n",
+                },
+                embedded_home=sudo_home,
+                embedded_script=embedded_dump,
+                extra_env={"HOME": str(root / "root"), "SUDO_USER": "hermes"},
+            )
+            archives = list(backups.glob("*.dump"))
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertEqual(b"archive", archives[0].read_bytes())
+            self.assertNotIn("secret", completed.stdout + completed.stderr)
+
+    def test_backup_honors_explicit_pg_dump_command_from_path(self) -> None:
+        explicit_dump = (
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 18.1'; exit; fi\n"
+            "printf explicit\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            completed, backups = self.run_backup(
+                Path(directory),
+                {"psql": "#!/bin/sh\nprintf '180001\n'\n", "custom-pg-dump": explicit_dump},
+                extra_env={"PG_DUMP": "custom-pg-dump"},
+            )
+            archives = list(backups.glob("*.dump"))
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertEqual(b"explicit", archives[0].read_bytes())
+
+    def test_backup_accepts_newer_pg_dump_compatible_with_older_server(self) -> None:
+        newer_dump = (
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 19.0'; exit; fi\n"
+            "printf newer\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            completed, backups = self.run_backup(
+                Path(directory),
+                {"psql": "#!/bin/sh\nprintf '180001\n'\n", "pg_dump": newer_dump},
+            )
+            archives = list(backups.glob("*.dump")) if backups.exists() else []
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertEqual(b"newer", archives[0].read_bytes())
+
+    def test_backup_does_not_fallback_when_explicit_pg_dump_is_incompatible(self) -> None:
+        embedded_dump = "#!/bin/sh\necho 'pg_dump (PostgreSQL) 18.1'\nexit 90\n"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            completed, backups = self.run_backup(
+                root,
+                {
+                    "psql": "#!/bin/sh\nprintf '180001\n'\n",
+                    "explicit-pg-dump": "#!/bin/sh\necho 'pg_dump (PostgreSQL) 16.14'\n",
+                },
+                embedded_home=root,
+                embedded_script=embedded_dump,
+                extra_env={"PG_DUMP": "explicit-pg-dump"},
+            )
+            self.assertNotEqual(0, completed.returncode)
+            self.assertIn("PG_DUMP", completed.stderr)
+            self.assertIn("PostgreSQL server major 18", completed.stderr)
+            self.assertFalse(backups.exists())
+
+    def test_backup_version_probe_failure_does_not_leak_database_url_or_create_archive(self) -> None:
+        database_url = "postgresql://user:top-secret@example.invalid/cortex"
+        with tempfile.TemporaryDirectory() as directory:
+            completed, backups = self.run_backup(
+                Path(directory),
+                {"psql": "#!/bin/sh\nprintf 'probe failed for %s\n' \"$*\" >&2\nexit 7\n"},
+                database_url=database_url,
+            )
+            self.assertNotEqual(0, completed.returncode)
+            self.assertIn("Cannot determine", completed.stderr)
+            self.assertNotIn(database_url, completed.stdout + completed.stderr)
+            self.assertFalse(backups.exists())
+
+    def test_backup_keeps_database_url_out_of_postgres_client_arguments(self) -> None:
+        database_url = "postgresql://user:top-secret@example.invalid/cortex"
+        psql = "#!/bin/sh\nprintf 'psql:%s\n' \"$*\" >>\"$ARG_LOG\"\nprintf '180001\n'\n"
+        pg_dump = (
+            "#!/bin/sh\n"
+            "printf 'pg_dump:%s\n' \"$*\" >>\"$ARG_LOG\"\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 18.1'; exit; fi\n"
+            "printf archive\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            argument_log = root / "arguments.log"
+            completed, _ = self.run_backup(
+                root,
+                {"psql": psql, "pg_dump": pg_dump},
+                extra_env={"ARG_LOG": str(argument_log)},
+                database_url=database_url,
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertNotIn(database_url, argument_log.read_text(encoding="utf-8"))
+
+    def test_backup_dump_failure_removes_partial_archive_without_leaking_database_url(self) -> None:
+        database_url = "postgresql://user:top-secret@example.invalid/cortex"
+        failing_dump = (
+            "#!/bin/sh\n"
+            "if [ \"${1:-}\" = --version ]; then echo 'pg_dump (PostgreSQL) 18.1'; exit; fi\n"
+            "printf partial\n"
+            "printf 'dump failed for %s\n' \"$*\" >&2\nexit 9\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            completed, backups = self.run_backup(
+                Path(directory),
+                {"psql": "#!/bin/sh\nprintf '180001\n'\n", "pg_dump": failing_dump},
+                database_url=database_url,
+            )
+            self.assertNotEqual(0, completed.returncode)
+            self.assertIn("Backup failed", completed.stderr)
+            self.assertNotIn(database_url, completed.stdout + completed.stderr)
+            self.assertEqual([], list(backups.glob("*")))
 
     def test_restore_verifies_the_requested_archive_not_checksum_filename(self) -> None:
         restore = ROOT / "deploy/restore.sh"
