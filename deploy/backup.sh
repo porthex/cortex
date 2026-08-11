@@ -20,10 +20,70 @@ for line in open(sys.argv[1], encoding="utf-8"):
 PY
 )
 [[ -n "$DATABASE_URL" ]] || { echo "CORTEX_DATABASE_URL is not configured" >&2; exit 2; }
-export PGDATABASE=$DATABASE_URL
 unset DATABASE_URL
 
-SERVER_VERSION_NUM=$("$PSQL" -X -Atqc 'SHOW server_version_num' 2>/dev/null) || {
+run_postgres_client() {
+  local run_as=$1
+  shift
+  python3 - "$ENV_FILE" "$run_as" "$@" <<'PY'
+import os
+import pwd
+import sys
+from urllib.parse import unquote, urlsplit
+
+try:
+    env_file, run_as, *command = sys.argv[1:]
+    url = ""
+    for line in open(env_file, encoding="utf-8"):
+        if line.startswith("CORTEX_DATABASE_URL="):
+            url = line.split("=", 1)[1].rstrip("\n")
+            break
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"postgres", "postgresql"} or not parsed.path.lstrip("/"):
+        raise ValueError
+    values = {
+        "PGDATABASE": unquote(parsed.path.lstrip("/")),
+        "PGHOST": unquote(parsed.hostname or ""),
+        "PGPORT": str(parsed.port or ""),
+        "PGUSER": unquote(parsed.username or ""),
+        "PGPASSWORD": unquote(parsed.password or ""),
+    }
+    query_names = {
+        "application_name": "PGAPPNAME",
+        "connect_timeout": "PGCONNECT_TIMEOUT",
+        "host": "PGHOST",
+        "options": "PGOPTIONS",
+        "port": "PGPORT",
+        "sslcert": "PGSSLCERT",
+        "sslkey": "PGSSLKEY",
+        "sslmode": "PGSSLMODE",
+        "sslrootcert": "PGSSLROOTCERT",
+    }
+    seen = set()
+    for field in filter(None, parsed.query.split("&")):
+        name, separator, value = field.partition("=")
+        name = unquote(name)
+        if not separator or name not in query_names or name in seen:
+            raise ValueError
+        seen.add(name)
+        values[query_names[name]] = unquote(value)
+    if any(any(ord(char) < 32 or ord(char) == 127 for char in value) for value in values.values()):
+        raise ValueError
+except (OSError, TypeError, ValueError):
+    raise SystemExit("CORTEX_DATABASE_URL is not a supported PostgreSQL URL") from None
+
+env = {name: value for name, value in os.environ.items() if not name.startswith("PG")}
+env.update({name: value for name, value in values.items() if value})
+if run_as:
+    account = pwd.getpwnam(run_as)
+    os.initgroups(account.pw_name, account.pw_gid)
+    os.setgid(account.pw_gid)
+    os.setuid(account.pw_uid)
+os.execvpe(command[0], command, env)
+PY
+}
+
+SERVER_VERSION_NUM=$(run_postgres_client "" "$PSQL" -X -Atqc 'SHOW server_version_num' 2>/dev/null) || {
   echo "Cannot determine the PostgreSQL server version with $PSQL" >&2
   exit 2
 }
@@ -60,22 +120,20 @@ else
 fi
 
 SELECTED_PG_DUMP=""
-SELECTED_AS_SUDO_USER=false
+SELECTED_RUN_AS=""
 for candidate in "${candidates[@]}"; do
   [[ -x "$candidate" ]] || continue
-  candidate_as_sudo_user=false
+  candidate_run_as=""
   if ((EUID == 0)) && [[ -n ${SUDO_USER:-} && -n "$SUDO_HOME" &&
       "$candidate" == "$SUDO_HOME"/.pg0/installation/*/bin/pg_dump ]]; then
-    candidate_as_sudo_user=true
-    version_output=$(sudo -u "$SUDO_USER" -- "$candidate" --version 2>/dev/null) || continue
-  else
-    version_output=$("$candidate" --version 2>/dev/null) || continue
+    candidate_run_as=$SUDO_USER
   fi
+  version_output=$(run_postgres_client "$candidate_run_as" "$candidate" --version 2>/dev/null) || continue
   if [[ "$version_output" =~ PostgreSQL\)\ ([0-9]+)(\.[0-9]+)? ]]; then
     candidate_major=${BASH_REMATCH[1]}
     if ((candidate_major >= SERVER_MAJOR)); then
       SELECTED_PG_DUMP=$candidate
-      SELECTED_AS_SUDO_USER=$candidate_as_sudo_user
+      SELECTED_RUN_AS=$candidate_run_as
       break
     fi
   fi
@@ -96,12 +154,7 @@ FINAL="$BACKUP_DIR/cortex-$STAMP.dump"
 TEMP="$FINAL.tmp"
 trap 'rm -f "$TEMP"' EXIT
 
-if $SELECTED_AS_SUDO_USER; then
-  dump_command=(sudo --preserve-env=PGDATABASE -u "$SUDO_USER" -- "$SELECTED_PG_DUMP")
-else
-  dump_command=("$SELECTED_PG_DUMP")
-fi
-if ! "${dump_command[@]}" --format=custom --compress=9 >"$TEMP" 2>/dev/null; then
+if ! run_postgres_client "$SELECTED_RUN_AS" "$SELECTED_PG_DUMP" --format=custom --compress=9 >"$TEMP" 2>/dev/null; then
   echo "Backup failed with compatible pg_dump '$SELECTED_PG_DUMP'; no archive was created" >&2
   exit 1
 fi
