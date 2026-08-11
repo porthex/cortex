@@ -120,7 +120,7 @@ Local models and storage can reduce outside data flow, but they do not make a de
 Run the platform-independent test suite:
 
 ```sh
-PYTHONPATH=src python -m unittest discover -s tests -v
+uv run --locked --extra test pytest -q
 python -m compileall -q src tests
 ```
 

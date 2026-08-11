@@ -93,6 +93,16 @@ class ProductIdentityTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("package metadata declares a Cortex license while LICENSES.md says it is undecided", result.stderr)
 
+    def test_documented_test_gate_installs_locked_test_dependencies(self):
+        canonical_gate = "uv run --locked --extra test pytest -q\npython -m compileall -q src tests"
+        stale_gate = "PYTHONPATH=src python -m unittest discover -s tests -v"
+
+        for relative in ("README.md", "docs/cli.md"):
+            with self.subTest(relative=relative):
+                documentation = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn(canonical_gate, documentation)
+                self.assertNotIn(stale_gate, documentation)
+
     def test_cortex_package_and_documentation_assets_exist(self):
         self.assertIsNotNone(importlib.import_module("cortex"))
         for relative in (
