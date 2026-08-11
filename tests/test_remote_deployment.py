@@ -229,8 +229,8 @@ class RemoteDeploymentContractTests(unittest.TestCase):
         self.assertIn("chmod 0600", backup)
         self.assertNotIn("set -x", backup)
         self.assertNotIn('--dbname="$DATABASE_URL"', backup)
-        self.assertIn("sudo --preserve-env=PGDATABASE", backup)
-        self.assertIn("SELECTED_AS_SUDO_USER", backup)
+        self.assertIn("os.setuid(account.pw_uid)", backup)
+        self.assertIn("SELECTED_RUN_AS", backup)
         self.assertIn("pg_restore", restore)
         self.assertIn("--exit-on-error", restore)
         self.assertIn("--single-transaction", restore)
@@ -357,7 +357,15 @@ class RemoteDeploymentContractTests(unittest.TestCase):
 
     def test_backup_keeps_database_url_out_of_postgres_client_arguments(self) -> None:
         database_url = "postgresql://user:top-secret@example.invalid/cortex"
-        psql = "#!/bin/sh\nprintf 'psql:%s\n' \"$*\" >>\"$ARG_LOG\"\nprintf '180001\n'\n"
+        psql = (
+            "#!/bin/sh\n"
+            "printf 'psql:%s\n' \"$*\" >>\"$ARG_LOG\"\n"
+            "[ \"$PGHOST\" = example.invalid ] && [ \"$PGUSER\" = user ] && "
+            "[ \"$PGPASSWORD\" = top-secret ] && [ \"$PGDATABASE\" = cortex ] && "
+            "[ -z \"${PGPORT:-}\" ] && [ -z \"${PGPASSFILE:-}\" ] && "
+            "[ -z \"${PGCHANNELBINDING:-}\" ] || exit 12\n"
+            "printf '180001\n'\n"
+        )
         pg_dump = (
             "#!/bin/sh\n"
             "printf 'pg_dump:%s\n' \"$*\" >>\"$ARG_LOG\"\n"
@@ -370,11 +378,39 @@ class RemoteDeploymentContractTests(unittest.TestCase):
             completed, _ = self.run_backup(
                 root,
                 {"psql": psql, "pg_dump": pg_dump},
-                extra_env={"ARG_LOG": str(argument_log)},
+                extra_env={
+                    "ARG_LOG": str(argument_log),
+                    "PGPORT": "9999",
+                    "PGPASSFILE": "/tmp/ambient-passfile",
+                    "PGCHANNELBINDING": "require",
+                },
                 database_url=database_url,
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             self.assertNotIn(database_url, argument_log.read_text(encoding="utf-8"))
+
+    def test_backup_rejects_unsafe_or_unsupported_database_urls_before_client_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory)
+            for index, database_url in enumerate(
+                (
+                    "postgresql://user:bad%00value@example.invalid/cortex",
+                    "postgresql://user:password@example.invalid/cortex?unknown=value",
+                )
+            ):
+                with self.subTest(database_url=database_url):
+                    root = parent / str(index)
+                    root.mkdir()
+                    invoked = root / "invoked"
+                    completed, backups = self.run_backup(
+                        root,
+                        {"psql": f"#!/bin/sh\nprintf invoked >'{invoked}'\n"},
+                        extra_env={"PGDATABASE": "ambient"},
+                        database_url=database_url,
+                    )
+                    self.assertNotEqual(0, completed.returncode)
+                    self.assertFalse(invoked.exists())
+                    self.assertFalse(backups.exists())
 
     def test_backup_dump_failure_removes_partial_archive_without_leaking_database_url(self) -> None:
         database_url = "postgresql://user:top-secret@example.invalid/cortex"
