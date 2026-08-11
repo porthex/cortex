@@ -106,7 +106,7 @@ Every memory request carries an explicit `bank`. Every request carries `Authoriz
 ## Reproducible verification
 
 ```sh
-PYTHONPATH=src python -m unittest discover -s tests -v
+uv run --locked --extra test pytest -q
 python -m compileall -q src tests
 uv build
 ```
