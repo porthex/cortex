@@ -32,7 +32,7 @@ $standardOutputPath = Join-Path $runtimeDirectory "memory-browser.log"
 $standardErrorPath = Join-Path $runtimeDirectory "memory-browser-error.log"
 $null = New-Item -ItemType Directory -Path $runtimeDirectory -Force
 
-function Get-CortexMemoryBrowserHealth {
+function Get-Cortex-MemoryBrowserHealth {
     try {
         return Invoke-RestMethod -Uri $healthUrl -TimeoutSec 3
     }
@@ -41,7 +41,7 @@ function Get-CortexMemoryBrowserHealth {
     }
 }
 
-function Test-CortexMemoryBrowserHealth {
+function Test-Cortex-MemoryBrowserHealth {
     param($Health)
 
     if ($null -eq $Health -or $null -eq $Health.PSObject.Properties["service"]) {
@@ -83,8 +83,8 @@ function Resolve-CortexControlPlaneRuntime {
 # The browser reads memories from the local API, so wake the brain first.
 & (Join-Path $PSScriptRoot "Start-CortexBrain.ps1") | Out-Null
 
-$existingHealth = Get-CortexMemoryBrowserHealth
-if (Test-CortexMemoryBrowserHealth -Health $existingHealth) {
+$existingHealth = Get-Cortex-MemoryBrowserHealth
+if (Test-Cortex-MemoryBrowserHealth -Health $existingHealth) {
     Open-CortexMemoryUrl
     Write-Output "Cortex Memory Browser is ready at $memoryUrl"
     exit 0
@@ -122,8 +122,8 @@ $process = Start-Process `
 
 $deadline = (Get-Date).AddSeconds([Math]::Max(10, $TimeoutSeconds))
 while ((Get-Date) -lt $deadline) {
-    $health = Get-CortexMemoryBrowserHealth
-    if (Test-CortexMemoryBrowserHealth -Health $health) {
+    $health = Get-Cortex-MemoryBrowserHealth
+    if (Test-Cortex-MemoryBrowserHealth -Health $health) {
         Open-CortexMemoryUrl
         Write-Output "Cortex Memory Browser is ready at $memoryUrl"
         exit 0

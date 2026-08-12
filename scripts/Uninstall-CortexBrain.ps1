@@ -15,7 +15,7 @@ $hindsightPath = Join-Path $env:USERPROFILE ".local\bin\hindsight-embed.exe"
 $ollamaPath = Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe"
 $taskName = "Cortex Brain Controller"
 
-$memoryBrowserStopPath = Join-Path $PSScriptRoot "Stop-CortexMemoryBrowser.ps1"
+$memoryBrowserStopPath = Join-Path $PSScriptRoot "Stop-Cortex-MemoryBrowser.ps1"
 if (Test-Path -LiteralPath $memoryBrowserStopPath) {
     & $memoryBrowserStopPath -Quiet
 }
