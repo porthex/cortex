@@ -7,38 +7,68 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-LEGACY = "cort" + "hex"
-TEXT_SUFFIXES = {
-    ".cmd",
-    ".json",
-    ".md",
-    ".ps1",
-    ".py",
-    ".service",
-    ".sh",
-    ".svg",
-    ".toml",
-    ".txt",
-    ".vbs",
-    ".yaml",
-    ".yml",
-}
+PROHIBITED_IDENTITY_VARIANTS = (
+    "cort" + "hex",
+    "cortex" + "memorybrowser",
+)
+
+
+def get_tracked_paths(root: Path) -> list[str]:
+    output = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=root,
+        capture_output=True,
+        check=True,
+    ).stdout
+    return [entry.decode(errors="surrogateescape") for entry in output.split(b"\0") if entry]
+
+
+def find_prohibited_identity_residuals(root: Path, tracked_paths: list[str]) -> tuple[list[str], list[str]]:
+    residual_paths = []
+    residual_text = []
+    for relative in tracked_paths:
+        if any(variant in relative.casefold() for variant in PROHIBITED_IDENTITY_VARIANTS):
+            residual_paths.append(relative)
+        try:
+            text = (root / relative).read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if any(variant in text.casefold() for variant in PROHIBITED_IDENTITY_VARIANTS):
+            residual_text.append(relative)
+    return residual_paths, residual_text
 
 
 class ProductIdentityTests(unittest.TestCase):
+    def test_identity_gate_checks_all_tracked_text_extensions(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source = root / "Gateway.cs"
+            source.write_text("class " + "Cortex" + "MemoryBrowser {}", encoding="utf-8")
+
+            residual_paths, residual_text = find_prohibited_identity_residuals(root, ["Gateway.cs"])
+
+        self.assertEqual(residual_paths, [])
+        self.assertEqual(residual_text, ["Gateway.cs"])
+
+    def test_identity_gate_preserves_unusual_git_paths(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
+            relative = "odd name-ü-with-tab\t-and-newline\n.cs"
+            source = root / relative
+            source.write_text("class " + "Cortex" + "MemoryBrowser {}", encoding="utf-8")
+            subprocess.run(["git", "add", "--", relative], cwd=root, check=True)
+
+            tracked_paths = get_tracked_paths(root)
+            residual_paths, residual_text = find_prohibited_identity_residuals(root, tracked_paths)
+
+        self.assertEqual(tracked_paths, [relative])
+        self.assertEqual(residual_paths, [])
+        self.assertEqual(residual_text, [relative])
+
     def test_source_tree_uses_cortex_identity_exclusively(self):
-        residual_paths = []
-        residual_text = []
-        for path in ROOT.rglob("*"):
-            if not path.is_file() or any(part in {".git", ".venv", "build", "dist"} for part in path.parts):
-                continue
-            relative = path.relative_to(ROOT).as_posix()
-            if LEGACY in relative.casefold():
-                residual_paths.append(relative)
-            if path.suffix.casefold() in TEXT_SUFFIXES:
-                text = path.read_text(encoding="utf-8")
-                if LEGACY in text.casefold():
-                    residual_text.append(relative)
+        tracked_paths = get_tracked_paths(ROOT)
+        residual_paths, residual_text = find_prohibited_identity_residuals(ROOT, tracked_paths)
 
         self.assertEqual(residual_paths, [])
         self.assertEqual(residual_text, [])

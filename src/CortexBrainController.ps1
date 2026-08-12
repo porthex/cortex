@@ -34,8 +34,8 @@ $script:LogPath = Join-Path $script:RuntimeDir "controller.log"
 $script:StatePath = Join-Path $script:RuntimeDir "state.json"
 $script:PidPath = Join-Path $script:RuntimeDir "controller.pid"
 $script:CommandPath = Join-Path $script:RuntimeDir "command.json"
-$script:MemoryBrowserStartPath = Join-Path $script:ProjectRoot "scripts\Start-CortexMemoryBrowser.ps1"
-$script:MemoryBrowserStopPath = Join-Path $script:ProjectRoot "scripts\Stop-CortexMemoryBrowser.ps1"
+$script:MemoryBrowserStartPath = Join-Path $script:ProjectRoot "scripts\Start-Cortex-MemoryBrowser.ps1"
+$script:MemoryBrowserStopPath = Join-Path $script:ProjectRoot "scripts\Stop-Cortex-MemoryBrowser.ps1"
 $null = New-Item -ItemType Directory -Path $script:RuntimeDir -Force
 
 $createdNew = $false
@@ -184,7 +184,7 @@ function Start-CortexBrain {
 function Stop-CortexBrain {
     param([switch]$Manual)
 
-    Close-CortexMemoryBrowser
+    Close-Cortex-MemoryBrowser
     Write-CortexLog -Message "Requesting deep sleep through the Windows service."
     try {
         $null = Invoke-CortexGatewayRequest `
@@ -208,10 +208,10 @@ function Stop-CortexBrain {
 function Open-CortexControlCenter {
     # The installed memory browser exposes the same banks and memories without
     # launching Hindsight's console-based control process.
-    Open-CortexMemoryBrowser
+    Open-Cortex-MemoryBrowser
 }
 
-function Open-CortexMemoryBrowser {
+function Open-Cortex-MemoryBrowser {
     try {
         if (-not (Test-Path -LiteralPath $script:MemoryBrowserStartPath)) {
             throw "Memory Browser launcher not found: $($script:MemoryBrowserStartPath)"
@@ -233,7 +233,7 @@ function Open-CortexMemoryBrowser {
     }
 }
 
-function Close-CortexMemoryBrowser {
+function Close-Cortex-MemoryBrowser {
     if (-not (Test-Path -LiteralPath $script:MemoryBrowserStopPath)) {
         return
     }
@@ -329,11 +329,11 @@ $menu.Items.Add($autoWakeItem) | Out-Null
 
 $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 $memoryBrowserItem = New-Object System.Windows.Forms.ToolStripMenuItem "Open Memory Browser"
-$memoryBrowserItem.Add_Click({ Open-CortexMemoryBrowser })
+$memoryBrowserItem.Add_Click({ Open-Cortex-MemoryBrowser })
 $menu.Items.Add($memoryBrowserItem) | Out-Null
 
 $closeMemoryBrowserItem = New-Object System.Windows.Forms.ToolStripMenuItem "Close Memory Browser"
-$closeMemoryBrowserItem.Add_Click({ Close-CortexMemoryBrowser })
+$closeMemoryBrowserItem.Add_Click({ Close-Cortex-MemoryBrowser })
 $menu.Items.Add($closeMemoryBrowserItem) | Out-Null
 
 $logsItem = New-Object System.Windows.Forms.ToolStripMenuItem "Open Logs"
@@ -353,7 +353,7 @@ $exitItem.Add_Click({
 $menu.Items.Add($exitItem) | Out-Null
 
 $script:NotifyIcon.ContextMenuStrip = $menu
-$script:NotifyIcon.Add_DoubleClick({ Open-CortexMemoryBrowser })
+$script:NotifyIcon.Add_DoubleClick({ Open-Cortex-MemoryBrowser })
 
 $script:NoClientSince = $null
 $script:TickBusy = $false
@@ -447,7 +447,7 @@ catch {
     }
 }
 finally {
-    Close-CortexMemoryBrowser
+    Close-Cortex-MemoryBrowser
     $script:Timer.Stop()
     $script:NotifyIcon.Visible = $false
     $script:NotifyIcon.Dispose()

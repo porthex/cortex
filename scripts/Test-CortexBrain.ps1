@@ -91,7 +91,7 @@ foreach ($memory in $matchingMemories) {
 }
 
 try {
-    & (Join-Path $PSScriptRoot "Start-CortexMemoryBrowser.ps1") -NoOpen | Out-Null
+    & (Join-Path $PSScriptRoot "Start-Cortex-MemoryBrowser.ps1") -NoOpen | Out-Null
     $browserHealth = Invoke-RestMethod -Uri "http://localhost:9999/api/health" -TimeoutSec 10
     if ([string]$browserHealth.service -ne "hindsight-control-plane" -or [string]$browserHealth.dataplane.status -ne "connected") {
         throw "Unexpected Memory Browser health response."
@@ -102,7 +102,7 @@ try {
     }
 }
 finally {
-    & (Join-Path $PSScriptRoot "Stop-CortexMemoryBrowser.ps1") -Quiet
+    & (Join-Path $PSScriptRoot "Stop-Cortex-MemoryBrowser.ps1") -Quiet
 }
 
 Write-Output "Cortex Brain and Memory Browser smoke tests completed; the temporary memory was retired. Expected marker: $stamp"
