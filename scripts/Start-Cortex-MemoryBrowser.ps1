@@ -50,7 +50,7 @@ function Test-Cortex-MemoryBrowserHealth {
     return [string]$Health.service -eq "hindsight-control-plane"
 }
 
-function Open-CortexMemoryUrl {
+function Open-Cortex-MemoryBrowserUrl {
     if (-not $NoOpen) {
         Start-Process -FilePath $memoryUrl
     }
@@ -85,7 +85,7 @@ function Resolve-CortexControlPlaneRuntime {
 
 $existingHealth = Get-Cortex-MemoryBrowserHealth
 if (Test-Cortex-MemoryBrowserHealth -Health $existingHealth) {
-    Open-CortexMemoryUrl
+    Open-Cortex-MemoryBrowserUrl
     Write-Output "Cortex Memory Browser is ready at $memoryUrl"
     exit 0
 }
@@ -124,7 +124,7 @@ $deadline = (Get-Date).AddSeconds([Math]::Max(10, $TimeoutSeconds))
 while ((Get-Date) -lt $deadline) {
     $health = Get-Cortex-MemoryBrowserHealth
     if (Test-Cortex-MemoryBrowserHealth -Health $health) {
-        Open-CortexMemoryUrl
+        Open-Cortex-MemoryBrowserUrl
         Write-Output "Cortex Memory Browser is ready at $memoryUrl"
         exit 0
     }

@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROHIBITED_IDENTITY_VARIANTS = (
     "cort" + "hex",
-    "cortex" + "memorybrowser",
+    "cortex" + "memory",
 )
 
 
@@ -49,6 +49,17 @@ class ProductIdentityTests(unittest.TestCase):
 
         self.assertEqual(residual_paths, [])
         self.assertEqual(residual_text, ["Gateway.cs"])
+
+    def test_identity_gate_rejects_concatenated_cortex_memory_identifiers(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            source = root / ("Open-Cortex" + "MemoryUrl.ps1")
+            source.write_text("function Open-Cortex" + "MemoryUrl {}", encoding="utf-8")
+
+            residual_paths, residual_text = find_prohibited_identity_residuals(root, [source.name])
+
+        self.assertEqual(residual_paths, [source.name])
+        self.assertEqual(residual_text, [source.name])
 
     def test_identity_gate_preserves_unusual_git_paths(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
